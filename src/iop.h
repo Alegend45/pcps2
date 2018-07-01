@@ -23,6 +23,7 @@ struct iop_cpu
     std::function<void(void*,u32,u32)> ww_real;
 
     void init();
+    u32 translate_addr(u32 addr);
     u8 rb(u32 addr);
     u16 rh(u32 addr);
     u32 rw(u32 addr);

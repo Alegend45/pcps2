@@ -2,7 +2,8 @@ CXX=g++
 CFLAGS=-std=c++14 -g
 LIBS=
 VPATH=src
-OBJ = common.o \
+OBJ = attotime.o \
+common.o \
 ee.o \
 iop_dma.o \
 iop.o \

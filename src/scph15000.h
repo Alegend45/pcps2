@@ -10,6 +10,10 @@ struct scph15000
     u8* bios; //[0x400000]
     u8* ee_ram; //[0x2000000]
     u8* iop_ram; //[0x200000]
+    u8* ee_sp_ram; //[0x4000]
+
+    u32 mch_ricm, mch_drd;
+    u8 rdram_sdevid;
 
     ee_cpu* ee;
     iop_cpu* iop;
@@ -17,7 +21,7 @@ struct scph15000
     iop_dma_t iop_dma;
 
     FILE* reg_access_log;
-    FILE* serial_buffer_log;
+    FILE* ee_debug_log;
 
     void init();
     void exit();

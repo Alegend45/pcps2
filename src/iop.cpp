@@ -14,39 +14,48 @@ void iop_cpu::init()
 }
 
 //TODO: This MMU emulation is COMPLETELY inaccurate, but it's good enough for now :/
+u32 iop_cpu::translate_addr(u32 addr)
+{
+    if(addr < 0x80000000) return addr & 0x7fffffff;
+    else if(addr < 0xa0000000) return addr - 0x80000000;
+    else if(addr < 0xc0000000) return addr - 0xa0000000;
+    else if(addr < 0xe0000000) return addr - 0xc0000000;
+    else return addr - 0xe0000000;
+}
+
 u8 iop_cpu::rb(u32 addr)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     return rb_real(device, phys_addr);
 }
 
 u16 iop_cpu::rh(u32 addr)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     return rh_real(device, phys_addr);
 }
 
 u32 iop_cpu::rw(u32 addr)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     return rw_real(device, phys_addr);
 }
 
 void iop_cpu::wb(u32 addr, u8 data)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     wb_real(device, phys_addr, data);
 }
 
 void iop_cpu::wh(u32 addr, u16 data)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     wh_real(device, phys_addr, data);
 }
 
 void iop_cpu::ww(u32 addr, u32 data)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     ww_real(device, phys_addr, data);
 }
 
@@ -530,7 +539,7 @@ void iop_cpu::tick()
             printf("[IOP] ANDI\n");
             int rs = (opcode >> 21) & 0x1f;
             int rt = (opcode >> 16) & 0x1f;
-            s32 imm = (s16)(opcode & 0xffff);
+            u16 imm = opcode & 0xffff;
             if(rt) r[rt] &= imm;
             break;
         }
@@ -539,7 +548,7 @@ void iop_cpu::tick()
             printf("[IOP] ORI\n");
             int rs = (opcode >> 21) & 0x1f;
             int rt = (opcode >> 16) & 0x1f;
-            s32 imm = (s16)(opcode & 0xffff);
+            u16 imm = opcode & 0xffff;
             if(rt) r[rt] |= imm;
             break;
         }
@@ -548,7 +557,7 @@ void iop_cpu::tick()
             printf("[IOP] XORI\n");
             int rs = (opcode >> 21) & 0x1f;
             int rt = (opcode >> 16) & 0x1f;
-            s32 imm = (s16)(opcode & 0xffff);
+            u16 imm = opcode & 0xffff;
             if(rt) r[rt] ^= imm;
             break;
         }

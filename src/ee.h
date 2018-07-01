@@ -8,9 +8,11 @@ struct ee_cpu
     u64 rhi[32];
 
     u64 lo, hi;
-    u64 sa;
+    u64 ee_sa;
 
     u8 interrupt_mask;
+
+    u32 cop0_count;
 
     union
     {
@@ -87,6 +89,7 @@ struct ee_cpu
     std::function<void(void*,u32,u128)> wq_real;
 
     void init();
+    u32 translate_addr(u32 addr);
     u8 rb(u32 addr);
     u16 rh(u32 addr);
     u32 rw(u32 addr);

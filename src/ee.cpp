@@ -12,73 +12,84 @@ void ee_cpu::init()
     inc_pc = true;
     delay_slot = 0;
     branch_on = false;
+
+    cop0_count = 0;
 }
 
 //TODO: This MMU emulation is COMPLETELY inaccurate, but it's good enough for now :/
+u32 ee_cpu::translate_addr(u32 addr)
+{
+    if(addr < 0x80000000) return addr & 0x7fffffff;
+    else if(addr < 0xa0000000) return addr - 0x80000000;
+    else if(addr < 0xc0000000) return addr - 0xa0000000;
+    else if(addr < 0xe0000000) return addr - 0xc0000000;
+    else return addr - 0xe0000000;
+}
+
 u8 ee_cpu::rb(u32 addr)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     return rb_real(device, phys_addr);
 }
 
 u16 ee_cpu::rh(u32 addr)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     return rh_real(device, phys_addr);
 }
 
 u32 ee_cpu::rw(u32 addr)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     return rw_real(device, phys_addr);
 }
 
 u64 ee_cpu::rd(u32 addr)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     return rd_real(device, phys_addr);
 }
 
 u128 ee_cpu::rq(u32 addr)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     return rq_real(device, phys_addr);
 }
 
 void ee_cpu::wb(u32 addr, u8 data)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     wb_real(device, phys_addr, data);
 }
 
 void ee_cpu::wh(u32 addr, u16 data)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     wh_real(device, phys_addr, data);
 }
 
 void ee_cpu::ww(u32 addr, u32 data)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     ww_real(device, phys_addr, data);
 }
 
 void ee_cpu::wd(u32 addr, u64 data)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     wd_real(device, phys_addr, data);
 }
 
 void ee_cpu::wq(u32 addr, u128 data)
 {
-    u32 phys_addr = addr & 0x1fffffff;
+    u32 phys_addr = translate_addr(addr);
     wq_real(device, phys_addr, data);
 }
 
 void ee_cpu::tick()
 {
     u32 opcode = rw(pc);
-    printf("[EE] Opcode: %08x\n[EE] PC: %08x\n", opcode, pc);
+    printf("[EE] Opcode: %08x\n[EE] PC: %08x\n[EE] Count: %08x\n", opcode, pc, cop0_count);
 
     switch(opcode >> 26)
     {
@@ -408,14 +419,14 @@ void ee_cpu::tick()
                 {
                     printf("[EE] MFSA\n");
                     int rd = (opcode >> 11) & 0x1f;
-                    if(rd) r[rd] = sa;
+                    if(rd) r[rd] = ee_sa;
                     break;
                 }
                 case 0x29:
                 {
                     printf("[EE] MTSA\n");
                     int rs = (opcode >> 21) & 0x1f;
-                    sa = r[rs];
+                    ee_sa = r[rs];
                     break;
                 }
                 case 0x2a:
@@ -669,7 +680,7 @@ void ee_cpu::tick()
                     printf("[EE] MTSAB\n");
                     int rs = (opcode >> 21) & 0x1f;
                     u16 imm = opcode & 0xffff;
-                    sa = ((r[rs] & 0xf) ^ (imm & 0xf)) << 3;
+                    ee_sa = ((r[rs] & 0xf) ^ (imm & 0xf)) << 3;
                     break;
                 }
                 case 0x19:
@@ -677,7 +688,7 @@ void ee_cpu::tick()
                     printf("[EE] MTSAH\n");
                     int rs = (opcode >> 21) & 0x1f;
                     u16 imm = opcode & 0xffff;
-                    sa = ((r[rs] & 0x7) ^ (imm & 0x7)) << 4;
+                    ee_sa = ((r[rs] & 0x7) ^ (imm & 0x7)) << 4;
                     break;
                 }
             }
@@ -818,27 +829,24 @@ void ee_cpu::tick()
         case 0x0c:
         {
             printf("[EE] ANDI\n");
-            int rs = (opcode >> 21) & 0x1f;
             int rt = (opcode >> 16) & 0x1f;
-            s64 imm = (s16)(opcode & 0xffff);
+            u16 imm = opcode & 0xffff;
             if(rt) r[rt] &= imm;
             break;
         }
         case 0x0d:
         {
             printf("[EE] ORI\n");
-            int rs = (opcode >> 21) & 0x1f;
             int rt = (opcode >> 16) & 0x1f;
-            s64 imm = (s16)(opcode & 0xffff);
+            u16 imm = opcode & 0xffff;
             if(rt) r[rt] |= imm;
             break;
         }
         case 0x0e:
         {
             printf("[EE] XORI\n");
-            int rs = (opcode >> 21) & 0x1f;
             int rt = (opcode >> 16) & 0x1f;
-            s64 imm = (s16)(opcode & 0xffff);
+            u16 imm = opcode & 0xffff;
             if(rt) r[rt] ^= imm;
             break;
         }
@@ -846,8 +854,7 @@ void ee_cpu::tick()
         {
             printf("[EE] LUI\n");
             int rt = (opcode >> 16) & 0x1f;
-            s64 imm = (s16)(opcode & 0xffff);
-            imm <<= 16;
+            s64 imm = (s32)((opcode & 0xffff) << 16);
             if(rt) r[rt] = imm;
             break;
         }
@@ -862,6 +869,16 @@ void ee_cpu::tick()
                     int rd = (opcode >> 11) & 0x1f;
                     switch(rd)
                     {
+                        case 0x09:
+                        {
+                            if(rt) r[rt] = cop0_count;
+                            break;
+                        }
+                        case 0x0c:
+                        {
+                            if(rt) r[rt] = cop0_status.whole;
+                            break;
+                        }
                         case 0x0f:
                         {
                             if(rt) r[rt] = 0x00002e20; //TODO: PCSX2 value. VERIFY!
@@ -882,6 +899,11 @@ void ee_cpu::tick()
                     int rd = (opcode >> 11) & 0x1f;
                     switch(rd)
                     {
+                        case 0x09:
+                        {
+                            cop0_count = r[rt];
+                            break;
+                        }
                         case 0x0c:
                         {
                             cop0_status.whole = r[rt];
@@ -1387,4 +1409,6 @@ void ee_cpu::tick()
         }
         else delay_slot--;
     }
+
+    cop0_count += 0x100;
 }

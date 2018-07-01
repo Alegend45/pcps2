@@ -3,6 +3,7 @@
 #endif
 
 #include "common.h"
+#include "attotime.h"
 #include "ee.h"
 #include "iop.h"
 #include "scph10000.h"
@@ -28,6 +29,12 @@ int main(int ac, char** av)
 
     std::string model = av[1];
     ps2_model ps2_type;
+    double ee_clock = 294912000;
+    double iop_clock = 67737600 / 2;
+
+    attotime ee_atto = attotime::from_hz(ee_clock);
+    attotime iop_atto = attotime::from_hz(iop_clock);
+    attotime current_time = attotime::zero;
 
     if(model == "scph10000")
     {
@@ -60,8 +67,10 @@ int main(int ac, char** av)
         ee.wq_real = scph10000_ee_wq;
 
         iop.rb_real = scph10000_iop_rb;
+        iop.rh_real = scph10000_iop_rh;
         iop.rw_real = scph10000_iop_rw;
         iop.wb_real = scph10000_iop_wb;
+        iop.wh_real = scph10000_iop_wh;
         iop.ww_real = scph10000_iop_ww;
     
 
@@ -69,11 +78,15 @@ int main(int ac, char** av)
         fread(dev.bios, 1, 0x400000, fp);
         fclose(fp);
 
-        for(int i = 0; i < 5000; i++)
+        for(int i = 0; i < 100000; i++)
         {
             ee.tick();
-            iop.tick();
-            dev.tick();
+            current_time += ee_atto;
+            if(current_time > iop_atto)
+            {
+                iop.tick();
+                current_time -= iop_atto;
+            }
         }
     }
 
@@ -108,19 +121,25 @@ int main(int ac, char** av)
         ee.wq_real = scph15000_ee_wq;
 
         iop.rb_real = scph15000_iop_rb;
+        iop.rh_real = scph15000_iop_rh;
         iop.rw_real = scph15000_iop_rw;
         iop.wb_real = scph15000_iop_wb;
+        iop.wh_real = scph15000_iop_wh;
         iop.ww_real = scph15000_iop_ww;
 
         FILE* fp = fopen("roms/ps2-0101j-20000217.bin","rb");
         fread(dev.bios, 1, 0x400000, fp);
         fclose(fp);
 
-        for(int i = 0; i < 100; i++)
+        for(int i = 0; i < 100000; i++)
         {
             ee.tick();
-            iop.tick();
-            dev.tick();
+            current_time += ee_atto;
+            if(current_time > iop_atto)
+            {
+                iop.tick();
+                current_time -= iop_atto;
+            }
         }
     }
 
