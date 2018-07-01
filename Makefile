@@ -3,6 +3,7 @@ CFLAGS=-std=c++14 -g
 LIBS=
 VPATH=src
 OBJ = ee.o \
+iop_dma.o \
 iop.o \
 main.o \
 scph10000.o \

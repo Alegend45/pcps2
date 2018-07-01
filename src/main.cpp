@@ -37,27 +37,38 @@ int main(int ac, char** av)
         ee_cpu ee;
         iop_cpu iop;
 
-        dev.init();
         ee.init();
         iop.init();
 
+        dev.ee = &ee;
+        dev.iop = &iop;
+
+        dev.init();
+
         ee.device = &dev;
         iop.device = &dev;
-    
-        ee.rw_real = scph10000_ee_rw;
-        ee.ww_real = scph10000_ee_ww;
 
+        ee.rb_real = scph10000_ee_rb;
+        ee.rw_real = scph10000_ee_rw;
+        ee.wb_real = scph10000_ee_wb;
+        ee.ww_real = scph10000_ee_ww;
+        ee.wd_real = scph10000_ee_wd;
+
+        iop.rb_real = scph10000_iop_rb;
         iop.rw_real = scph10000_iop_rw;
+        iop.wb_real = scph10000_iop_wb;
         iop.ww_real = scph10000_iop_ww;
+    
 
         FILE* fp = fopen("roms/ps2-0100j-20000117.bin","rb");
         fread(dev.bios, 1, 0x400000, fp);
         fclose(fp);
 
-        for(int i = 0; i < 100; i++)
+        for(int i = 0; i < 500; i++)
         {
             ee.tick();
             iop.tick();
+            dev.tick();
         }
     }
 
@@ -69,17 +80,26 @@ int main(int ac, char** av)
         ee_cpu ee;
         iop_cpu iop;
 
-        dev.init();
         ee.init();
         iop.init();
 
+        dev.ee = &ee;
+        dev.iop = &iop;
+
+        dev.init();
+
         ee.device = &dev;
         iop.device = &dev;
-    
-        ee.rw_real = scph15000_ee_rw;
-        ee.ww_real = scph15000_ee_ww;
 
+        ee.rb_real = scph15000_ee_rb;
+        ee.rw_real = scph15000_ee_rw;
+        ee.wb_real = scph15000_ee_wb;
+        ee.ww_real = scph15000_ee_ww;
+        ee.wd_real = scph15000_ee_wd;
+
+        iop.rb_real = scph15000_iop_rb;
         iop.rw_real = scph15000_iop_rw;
+        iop.wb_real = scph15000_iop_wb;
         iop.ww_real = scph15000_iop_ww;
 
         FILE* fp = fopen("roms/ps2-0101j-20000217.bin","rb");
@@ -90,6 +110,7 @@ int main(int ac, char** av)
         {
             ee.tick();
             iop.tick();
+            dev.tick();
         }
     }
 

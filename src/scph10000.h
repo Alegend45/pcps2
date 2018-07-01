@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "ee.h"
+#include "iop_dma.h"
 #include "iop.h"
 
 struct scph10000
@@ -13,6 +14,8 @@ struct scph10000
     ee_cpu* ee;
     iop_cpu* iop;
 
+    iop_dma_t iop_dma;
+
     FILE* reg_access_log;
     FILE* serial_buffer_log;
 
@@ -22,8 +25,13 @@ struct scph10000
     void tick();
 };
 
+u8 scph10000_ee_rb(void* dev, u32 addr);
 u32 scph10000_ee_rw(void* dev, u32 addr);
+void scph10000_ee_wb(void* dev, u32 addr, u8 data);
 void scph10000_ee_ww(void* dev, u32 addr, u32 data);
+void scph10000_ee_wd(void* dev, u32 addr, u64 data);
 
+u8 scph10000_iop_rb(void* dev, u32 addr);
 u32 scph10000_iop_rw(void* dev, u32 addr);
+void scph10000_iop_wb(void* dev, u32 addr, u8 data);
 void scph10000_iop_ww(void* dev, u32 addr, u32 data);
