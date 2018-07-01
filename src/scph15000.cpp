@@ -114,9 +114,12 @@ u32 scph15000_ee_rw(void* dev, u32 addr)
         if(addr == 0x1000f440)
         {
             fprintf(device->reg_access_log, "[EE] MCH DRD read %08x pc %08x\n", addr, device->ee->pc);
-            if(!((device->mch_ricm >> 6) & 0xf))
+            u16 cmd = (device->mch_ricm >> 16) & 0xfff;
+            u8 subcmd = (device->mch_ricm >> 6) & 0xf;
+            u8 lsb5 = device->mch_ricm & 0x1f;
+            if(subcmd == 0)
             {
-                switch((device->mch_ricm >> 16) & 0xfff)
+                switch(cmd)
                 {
                     case 0x021:
                     {
@@ -125,19 +128,12 @@ u32 scph15000_ee_rw(void* dev, u32 addr)
                             device->rdram_sdevid++;
                             return 0x1f;
                         }
-                        return 0;
+                        break;
                     }
-                    case 0x023:
+                    case 0x40:
                     {
-                        return 0x0d0d;
-                    }
-                    case 0x024:
-                    {
-                        return 0x0090;
-                    }
-                    case 0x040:
-                    {
-                        return device->mch_ricm & 0x1f;
+                        return lsb5;
+                        break;
                     }
                 }
             }
@@ -358,9 +354,16 @@ void scph15000_ee_ww(void* dev, u32 addr, u32 data)
         if(addr == 0x1000f430)
         {
             fprintf(device->reg_access_log, "[EE] MCH RICM write %08x data %08x pc %08x\n", addr, data, device->ee->pc);
-            if((((data >> 16) & 0xfff) == 0x021) && (((data >> 6) & 0xf) == 1) && (((device->mch_drd >> 7) & 1) == 0))
+            u16 cmd = (data >> 16) & 0xfff;
+            u8 subcmd = (data >> 6) & 0xf;
+            bool tmp = ((device->mch_drd >> 7) & 1) ? false : true;
+            switch(cmd)
             {
-                device->rdram_sdevid = 0;
+                case 0x021:
+                {
+                    if(subcmd == 1 && tmp) device->rdram_sdevid = 0;
+                    break;
+                }
             }
             device->mch_ricm = data & ~(1 << 31);
         }

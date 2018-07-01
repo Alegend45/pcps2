@@ -78,7 +78,7 @@ int main(int ac, char** av)
         fread(dev.bios, 1, 0x400000, fp);
         fclose(fp);
 
-        for(int i = 0; i < 100000; i++)
+        for(int i = 0; i < 1000000; i++)
         {
             ee.tick();
             current_time += ee_atto;

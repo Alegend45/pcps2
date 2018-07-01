@@ -66,7 +66,7 @@ u8 scph10000_ee_rb(void* dev, u32 addr)
     {
         return device->ee_sp_ram[addr & 0x3fff];
     }
-    else printf("[EE] Unknown address %08x!\n", addr);
+    else fprintf(device->reg_access_log, "[EE] Unknown address %08x!\n", addr);
     return 0;
 }
 
@@ -97,7 +97,7 @@ u16 scph10000_ee_rh(void* dev, u32 addr)
     {
         return device->ee_sp_ram[(addr+0) & 0x3fff] | (device->ee_sp_ram[(addr+1) & 0x3fff] << 8);
     }
-    else printf("[EE] Unknown address %08x!\n", addr);
+    else fprintf(device->reg_access_log, "[EE] Unknown address %08x!\n", addr);
     return 0;
 }
 
@@ -114,9 +114,12 @@ u32 scph10000_ee_rw(void* dev, u32 addr)
         if(addr == 0x1000f440)
         {
             fprintf(device->reg_access_log, "[EE] MCH DRD read %08x pc %08x\n", addr, device->ee->pc);
-            if(!((device->mch_ricm >> 6) & 0xf))
+            u16 cmd = (device->mch_ricm >> 16) & 0xfff;
+            u8 subcmd = (device->mch_ricm >> 6) & 0xf;
+            u8 lsb5 = device->mch_ricm & 0x1f;
+            if(subcmd == 0)
             {
-                switch((device->mch_ricm >> 16) & 0xfff)
+                switch(cmd)
                 {
                     case 0x021:
                     {
@@ -125,19 +128,12 @@ u32 scph10000_ee_rw(void* dev, u32 addr)
                             device->rdram_sdevid++;
                             return 0x1f;
                         }
-                        return 0;
+                        break;
                     }
-                    case 0x023:
+                    case 0x40:
                     {
-                        return 0x0d0d;
-                    }
-                    case 0x024:
-                    {
-                        return 0x0090;
-                    }
-                    case 0x040:
-                    {
-                        return device->mch_ricm & 0x1f;
+                        return lsb5;
+                        break;
                     }
                 }
             }
@@ -163,7 +159,7 @@ u32 scph10000_ee_rw(void* dev, u32 addr)
         return device->ee_sp_ram[(addr+0) & 0x3fff] | (device->ee_sp_ram[(addr+1) & 0x3fff] << 8)
         | (device->ee_sp_ram[(addr+2) & 0x3fff] << 16) | (device->ee_sp_ram[(addr+3) & 0x3fff] << 24);
     }
-    else printf("[EE] Unknown address %08x!\n", addr);
+    else fprintf(device->reg_access_log, "[EE] Unknown address %08x!\n", addr);
     return 0;
 }
 
@@ -206,7 +202,7 @@ u64 scph10000_ee_rd(void* dev, u32 addr)
         | (device->ee_sp_ram[(addr+4) & 0x3fff] << 32) | (device->ee_sp_ram[(addr+5) & 0x3fff] << 40)
         | (device->ee_sp_ram[(addr+6) & 0x3fff] << 48) | (device->ee_sp_ram[(addr+7) & 0x3fff] << 56);
     }
-    else printf("[EE] Unknown address %08x!\n", addr);
+    else fprintf(device->reg_access_log, "[EE] Unknown address %08x!\n", addr);
     return 0;
 }
 
@@ -280,7 +276,7 @@ u128 scph10000_ee_rq(void* dev, u32 addr)
 
         return result;
     }
-    else printf("[EE] Unknown address %08x!\n", addr);
+    else fprintf(device->reg_access_log, "[EE] Unknown address %08x!\n", addr);
     return result;
 }
 
@@ -311,7 +307,7 @@ void scph10000_ee_wb(void* dev, u32 addr, u8 data)
     {
         device->ee_sp_ram[addr & 0x3fff] = data;
     }
-    else printf("[EE] Unknown address %08x data %02x!\n", addr, data);
+    else fprintf(device->reg_access_log, "[EE] Unknown address %08x data %02x!\n", addr, data);
 }
 
 void scph10000_ee_wh(void* dev, u32 addr, u16 data)
@@ -340,7 +336,7 @@ void scph10000_ee_wh(void* dev, u32 addr, u16 data)
         device->ee_sp_ram[(addr+0) & 0x3fff] = (data >> 0) & 0xff;
         device->ee_sp_ram[(addr+1) & 0x3fff] = (data >> 8) & 0xff;
     }
-    else printf("[EE] Unknown address %08x data %04x!\n", addr, data);
+    else fprintf(device->reg_access_log, "[EE] Unknown address %08x data %04x!\n", addr, data);
 }
 
 void scph10000_ee_ww(void* dev, u32 addr, u32 data)
@@ -358,9 +354,16 @@ void scph10000_ee_ww(void* dev, u32 addr, u32 data)
         if(addr == 0x1000f430)
         {
             fprintf(device->reg_access_log, "[EE] MCH RICM write %08x data %08x pc %08x\n", addr, data, device->ee->pc);
-            if((((data >> 16) & 0xfff) == 0x021) && (((data >> 6) & 0xf) == 1) && (((device->mch_drd >> 7) & 1) == 0))
+            u16 cmd = (data >> 16) & 0xfff;
+            u8 subcmd = (data >> 6) & 0xf;
+            bool tmp = ((device->mch_drd >> 7) & 1) ? false : true;
+            switch(cmd)
             {
-                device->rdram_sdevid = 0;
+                case 0x021:
+                {
+                    if(subcmd == 1 && tmp) device->rdram_sdevid = 0;
+                    break;
+                }
             }
             device->mch_ricm = data & ~(1 << 31);
         }
@@ -389,7 +392,7 @@ void scph10000_ee_ww(void* dev, u32 addr, u32 data)
         device->ee_sp_ram[(addr+2) & 0x3fff] = (data >> 16) & 0xff;
         device->ee_sp_ram[(addr+3) & 0x3fff] = (data >> 24) & 0xff;
     }
-    else printf("[EE] Unknown address %08x data %08x!\n", addr, data);
+    else fprintf(device->reg_access_log, "[EE] Unknown address %08x data %08x!\n", addr, data);
 }
 
 void scph10000_ee_wd(void* dev, u32 addr, u64 data)
@@ -437,7 +440,7 @@ void scph10000_ee_wd(void* dev, u32 addr, u64 data)
         device->ee_sp_ram[(addr+6) & 0x3fff] = (data >> 48) & 0xff;
         device->ee_sp_ram[(addr+7) & 0x3fff] = (data >> 56) & 0xff;
     }
-    else printf("[EE] Unknown address %08x data %016x!\n", addr, data);
+    else fprintf(device->reg_access_log, "[EE] Unknown address %08x data %016x!\n", addr, data);
 }
 
 void scph10000_ee_wq(void* dev, u32 addr, u128 data)
@@ -511,7 +514,7 @@ void scph10000_ee_wq(void* dev, u32 addr, u128 data)
         device->ee_sp_ram[(addr+14) & 0x3fff] = (data.hi >> 48) & 0xff;
         device->ee_sp_ram[(addr+15) & 0x3fff] = (data.hi >> 56) & 0xff;
     }
-    else printf("[EE] Unknown address %08x data %016x%016x!\n", addr, data.hi, data.lo);
+    else fprintf(device->reg_access_log, "[EE] Unknown address %08x data %016x%016x!\n", addr, data.hi, data.lo);
 }
 
 u8 scph10000_iop_rb(void* dev, u32 addr)
@@ -529,7 +532,7 @@ u8 scph10000_iop_rb(void* dev, u32 addr)
     {
         return device->bios[addr & 0x3fffff];
     }
-    else printf("[IOP] Unknown address %08x!\n", addr);
+    else fprintf(device->reg_access_log, "[IOP] Unknown address %08x!\n", addr);
     return 0;
 }
 
@@ -548,7 +551,7 @@ u16 scph10000_iop_rh(void* dev, u32 addr)
     {
         return device->bios[(addr+0) & 0x3fffff] | (device->bios[(addr+1) & 0x3fffff] << 8);
     }
-    else printf("[IOP] Unknown address %08x!\n", addr);
+    else fprintf(device->reg_access_log, "[IOP] Unknown address %08x!\n", addr);
     return 0;
 }
 
@@ -579,7 +582,7 @@ u32 scph10000_iop_rw(void* dev, u32 addr)
         return device->bios[(addr+0) & 0x3fffff] | (device->bios[(addr+1) & 0x3fffff] << 8)
         | (device->bios[(addr+2) & 0x3fffff] << 16) | (device->bios[(addr+3) & 0x3fffff] << 24);
     }
-    else printf("[IOP] Unknown address %08x!\n", addr);
+    else fprintf(device->reg_access_log, "[IOP] Unknown address %08x!\n", addr);
     return 0;
 }
 
@@ -594,7 +597,7 @@ void scph10000_iop_wb(void* dev, u32 addr, u8 data)
     {
         fprintf(device->reg_access_log, "[IOP] Unknown register write %08x data %02x pc %08x\n", addr, data, device->iop->pc);
     }
-    else printf("[IOP] Unknown address %08x data %02x!\n", addr, data);
+    else fprintf(device->reg_access_log, "[IOP] Unknown address %08x data %02x!\n", addr, data);
 }
 
 void scph10000_iop_wh(void* dev, u32 addr, u16 data)
@@ -609,7 +612,7 @@ void scph10000_iop_wh(void* dev, u32 addr, u16 data)
     {
         fprintf(device->reg_access_log, "[IOP] Unknown register write %08x data %08x pc %08x\n", addr, data, device->iop->pc);
     }
-    else printf("[IOP] Unknown address %08x data %08x!\n", addr, data);
+    else fprintf(device->reg_access_log, "[IOP] Unknown address %08x data %08x!\n", addr, data);
 }
 
 void scph10000_iop_ww(void* dev, u32 addr, u32 data)
@@ -636,5 +639,5 @@ void scph10000_iop_ww(void* dev, u32 addr, u32 data)
         }
         else fprintf(device->reg_access_log, "[IOP] Unknown register write %08x data %08x pc %08x\n", addr, data, device->iop->pc);
     }
-    else printf("[IOP] Unknown address %08x data %08x!\n", addr, data);
+    else fprintf(device->reg_access_log, "[IOP] Unknown address %08x data %08x!\n", addr, data);
 }
