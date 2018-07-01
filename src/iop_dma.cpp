@@ -45,7 +45,7 @@ u32 iop_dma_t::dma_rw(u32 addr)
         case 0x0f0:
         {
             u32 result = 0;
-            for(int i = 0; i < 8; i++)
+            for(u32 i = 0; i < 8; i++)
             {
                 result |= dpcr.priorities[i] << (i << 2);
                 result |= dpcr.enable[i] << ((i << 2) + 3);
@@ -69,7 +69,7 @@ u32 iop_dma_t::dma_rw(u32 addr)
         case 0x570:
         {
             u32 result = 0;
-            for(int i = 8; i < 16; i++)
+            for(u32 i = 8; i < 16; i++)
             {
                 int bit = i - 8;
                 result |= dpcr.priorities[i] << (bit << 2);
@@ -130,7 +130,7 @@ void iop_dma_t::dma_ww(u32 addr, u32 data)
     {
         case 0x0f0:
         {
-            for(int i = 0; i < 8; i++)
+            for(u32 i = 0; i < 8; i++)
             {
                 bool old_enable = dpcr.enable[i];
                 dpcr.priorities[i] = (data >> (i << 2)) & 7;
@@ -148,7 +148,7 @@ void iop_dma_t::dma_ww(u32 addr, u32 data)
         }
         case 0x570:
         {
-            for(int i = 8; i < 16; i++)
+            for(u32 i = 8; i < 16; i++)
             {
                 int bit = i - 8;
                 bool old_enable = dpcr.enable[i];
