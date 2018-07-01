@@ -21,16 +21,40 @@ u8 ee_cpu::rb(u32 addr)
     return rb_real(device, phys_addr);
 }
 
+u16 ee_cpu::rh(u32 addr)
+{
+    u32 phys_addr = addr & 0x1fffffff;
+    return rh_real(device, phys_addr);
+}
+
 u32 ee_cpu::rw(u32 addr)
 {
     u32 phys_addr = addr & 0x1fffffff;
     return rw_real(device, phys_addr);
 }
 
+u64 ee_cpu::rd(u32 addr)
+{
+    u32 phys_addr = addr & 0x1fffffff;
+    return rd_real(device, phys_addr);
+}
+
+u128 ee_cpu::rq(u32 addr)
+{
+    u32 phys_addr = addr & 0x1fffffff;
+    return rq_real(device, phys_addr);
+}
+
 void ee_cpu::wb(u32 addr, u8 data)
 {
     u32 phys_addr = addr & 0x1fffffff;
     wb_real(device, phys_addr, data);
+}
+
+void ee_cpu::wh(u32 addr, u16 data)
+{
+    u32 phys_addr = addr & 0x1fffffff;
+    wh_real(device, phys_addr, data);
 }
 
 void ee_cpu::ww(u32 addr, u32 data)
@@ -43,6 +67,12 @@ void ee_cpu::wd(u32 addr, u64 data)
 {
     u32 phys_addr = addr & 0x1fffffff;
     wd_real(device, phys_addr, data);
+}
+
+void ee_cpu::wq(u32 addr, u128 data)
+{
+    u32 phys_addr = addr & 0x1fffffff;
+    wq_real(device, phys_addr, data);
 }
 
 void ee_cpu::tick()
@@ -203,6 +233,33 @@ void ee_cpu::tick()
                     lo = r[rs];
                     break;
                 }
+                case 0x14:
+                {
+                    printf("[EE] DSLLV\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd) r[rd] = r[rt] << (r[rs] & 0x3f);
+                    break;
+                }
+                case 0x16:
+                {
+                    printf("[EE] DSRLV\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd) r[rd] = r[rt] >> (r[rs] & 0x3f);
+                    break;
+                }
+                case 0x17:
+                {
+                    printf("[EE] DSRAV\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd) r[rd] = (s64)r[rt] >> (r[rs] & 0x3f);
+                    break;
+                }
                 case 0x18:
                 {
                     printf("[EE] MULT\n");
@@ -271,6 +328,46 @@ void ee_cpu::tick()
                     }
                     break;
                 }
+                case 0x20:
+                {
+                    printf("[EE] ADD\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    s32 result = (s64)r[rs] + (s64)r[rt];
+                    if(rd) r[rd] = (s64)result;
+                    break;
+                }
+                case 0x21:
+                {
+                    printf("[EE] ADDU\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    s32 result = (s64)r[rs] + (s64)r[rt];
+                    if(rd) r[rd] = (s64)result;
+                    break;
+                }
+                case 0x22:
+                {
+                    printf("[EE] SUB\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    s32 result = (s64)r[rs] - (s64)r[rt];
+                    if(rd) r[rd] = (s64)result;
+                    break;
+                }
+                case 0x23:
+                {
+                    printf("[EE] SUBU\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    s32 result = (s64)r[rs] - (s64)r[rt];
+                    if(rd) r[rd] = (s64)result;
+                    break;
+                }
                 case 0x24:
                 {
                     printf("[EE] AND\n");
@@ -307,6 +404,46 @@ void ee_cpu::tick()
                     if(rd) r[rd] = ~(r[rs] | r[rt]);
                     break;
                 }
+                case 0x28:
+                {
+                    printf("[EE] MFSA\n");
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd) r[rd] = sa;
+                    break;
+                }
+                case 0x29:
+                {
+                    printf("[EE] MTSA\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    sa = r[rs];
+                    break;
+                }
+                case 0x2a:
+                {
+                    printf("[EE] SLT\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd)
+                    {
+                        if((s64)r[rs] < (s64)r[rt]) r[rd] = 1;
+                        else r[rd] = 0;
+                    }
+                    break;
+                }
+                case 0x2b:
+                {
+                    printf("[EE] SLTU\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd)
+                    {
+                        if(r[rs] < r[rt]) r[rd] = 1;
+                        else r[rd] = 0;
+                    }
+                    break;
+                }
                 case 0x2c:
                 {
                     printf("[EE] DADD\n");
@@ -323,6 +460,224 @@ void ee_cpu::tick()
                     int rt = (opcode >> 16) & 0x1f;
                     int rd = (opcode >> 11) & 0x1f;
                     if(rd) r[rd] = r[rs] + r[rt];
+                    break;
+                }
+                case 0x2e:
+                {
+                    printf("[EE] DSUB\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd) r[rd] = r[rs] - r[rt];
+                    break;
+                }
+                case 0x2f:
+                {
+                    printf("[EE] DSUBU\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd) r[rd] = r[rs] - r[rt];
+                    break;
+                }
+                case 0x38:
+                {
+                    printf("[EE] DSLL\n");
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    int sa = (opcode >> 6) & 0x1f;
+                    if(rd) r[rd] = r[rt] << sa;
+                    break;
+                }
+                case 0x3a:
+                {
+                    printf("[EE] DSRL\n");
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    int sa = (opcode >> 6) & 0x1f;
+                    if(rd) r[rd] = r[rt] >> sa;
+                    break;
+                }
+                case 0x3b:
+                {
+                    printf("[EE] DSRA\n");
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    int sa = (opcode >> 6) & 0x1f;
+                    if(rd) r[rd] = (s64)r[rt] >> sa;
+                    break;
+                }
+                case 0x3c:
+                {
+                    printf("[EE] DSLL32\n");
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    int sa = (opcode >> 6) & 0x1f;
+                    sa += 32;
+                    if(rd) r[rd] = r[rt] << sa;
+                    break;
+                }
+                case 0x3e:
+                {
+                    printf("[EE] DSRL32\n");
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    int sa = (opcode >> 6) & 0x1f;
+                    sa += 32;
+                    if(rd) r[rd] = r[rt] >> sa;
+                    break;
+                }
+                case 0x3f:
+                {
+                    printf("[EE] DSRA32\n");
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    int sa = (opcode >> 6) & 0x1f;
+                    sa += 32;
+                    if(rd) r[rd] = (s64)r[rt] >> sa;
+                    break;
+                }
+            }
+            break;
+        }
+        case 0x01:
+        {
+            switch((opcode >> 16) & 0x1f)
+            {
+                case 0x00:
+                {
+                    printf("[EE] BLTZ\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    s32 offset = (s16)(opcode & 0xffff);
+                    offset <<= 2;
+                    if((s64)r[rs] < 0)
+                    {
+                        branch_on = true;
+                        newpc = pc + offset + 4;
+                        delay_slot = 1;
+                    }
+                    break;
+                }
+                case 0x01:
+                {
+                    printf("[EE] BGEZ\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    s32 offset = (s16)(opcode & 0xffff);
+                    offset <<= 2;
+                    if((s64)r[rs] >= 0)
+                    {
+                        branch_on = true;
+                        newpc = pc + offset + 4;
+                        delay_slot = 1;
+                    }
+                    break;
+                }
+                case 0x02:
+                {
+                    printf("[EE] BLTZL\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    s32 offset = (s16)(opcode & 0xffff);
+                    offset <<= 2;
+                    if((s64)r[rs] < 0)
+                    {
+                        branch_on = true;
+                        newpc = pc + offset + 4;
+                        delay_slot = 1;
+                    }
+                    else pc += 4;
+                    break;
+                }
+                case 0x03:
+                {
+                    printf("[EE] BGEZL\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    s32 offset = (s16)(opcode & 0xffff);
+                    offset <<= 2;
+                    if((s64)r[rs] >= 0)
+                    {
+                        branch_on = true;
+                        newpc = pc + offset + 4;
+                        delay_slot = 1;
+                    }
+                    else pc += 4;
+                    break;
+                }
+                case 0x10:
+                {
+                    printf("[EE] BLTZAL\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    s32 offset = (s16)(opcode & 0xffff);
+                    offset <<= 2;
+                    if((s64)r[rs] < 0)
+                    {
+                        branch_on = true;
+                        newpc = pc + offset + 4;
+                        delay_slot = 1;
+                        r[31] = pc + 8;
+                    }
+                    break;
+                }
+                case 0x11:
+                {
+                    printf("[EE] BGEZAL\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    s32 offset = (s16)(opcode & 0xffff);
+                    offset <<= 2;
+                    if((s64)r[rs] >= 0)
+                    {
+                        branch_on = true;
+                        newpc = pc + offset + 4;
+                        delay_slot = 1;
+                        r[31] = pc + 8;
+                    }
+                    break;
+                }
+                case 0x12:
+                {
+                    printf("[EE] BLTZALL\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    s32 offset = (s16)(opcode & 0xffff);
+                    offset <<= 2;
+                    if((s64)r[rs] < 0)
+                    {
+                        branch_on = true;
+                        newpc = pc + offset + 4;
+                        delay_slot = 1;
+                        r[31] = pc + 8;
+                    }
+                    else pc += 4;
+                    break;
+                }
+                case 0x13:
+                {
+                    printf("[EE] BGEZALL\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    s32 offset = (s16)(opcode & 0xffff);
+                    offset <<= 2;
+                    if((s64)r[rs] >= 0)
+                    {
+                        branch_on = true;
+                        newpc = pc + offset + 4;
+                        delay_slot = 1;
+                        r[31] = pc + 8;
+                    }
+                    else pc += 4;
+                    break;
+                }
+                case 0x18:
+                {
+                    printf("[EE] MTSAB\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    u16 imm = opcode & 0xffff;
+                    sa = ((r[rs] & 0xf) ^ (imm & 0xf)) << 3;
+                    break;
+                }
+                case 0x19:
+                {
+                    printf("[EE] MTSAH\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    u16 imm = opcode & 0xffff;
+                    sa = ((r[rs] & 0x7) ^ (imm & 0x7)) << 4;
                     break;
                 }
             }
@@ -373,6 +728,34 @@ void ee_cpu::tick()
             s32 offset = (s16)(opcode & 0xffff);
             offset <<= 2;
             if(r[rt] != r[rs])
+            {
+                branch_on = true;
+                newpc = pc + offset + 4;
+                delay_slot = 1;
+            }
+            break;
+        }
+        case 0x06:
+        {
+            printf("[EE] BLEZ\n");
+            int rs = (opcode >> 21) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            offset <<= 2;
+            if((s64)r[rs] <= 0)
+            {
+                branch_on = true;
+                newpc = pc + offset + 4;
+                delay_slot = 1;
+            }
+            break;
+        }
+        case 0x07:
+        {
+            printf("[EE] BGTZ\n");
+            int rs = (opcode >> 21) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            offset <<= 2;
+            if((s64)r[rs] > 0)
             {
                 branch_on = true;
                 newpc = pc + offset + 4;
@@ -566,12 +949,12 @@ void ee_cpu::tick()
                             printf("[EE] ERET\n");
                             break;
                         }
-                        case 0x34:
+                        case 0x38:
                         {
                             printf("[EE] EI\n");
                             break;
                         }
-                        case 0x35:
+                        case 0x39:
                         {
                             printf("[EE] DI\n");
                             break;
@@ -614,6 +997,124 @@ void ee_cpu::tick()
             else pc += 4;
             break;
         }
+        case 0x16:
+        {
+            printf("[EE] BLEZL\n");
+            int rs = (opcode >> 21) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            offset <<= 2;
+            if((s64)r[rs] <= 0)
+            {
+                branch_on = true;
+                newpc = pc + offset + 4;
+                delay_slot = 1;
+            }
+            else pc += 4;
+            break;
+        }
+        case 0x17:
+        {
+            printf("[EE] BGTZL\n");
+            int rs = (opcode >> 21) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            offset <<= 2;
+            if((s64)r[rs] > 0)
+            {
+                branch_on = true;
+                newpc = pc + offset + 4;
+                delay_slot = 1;
+            }
+            else pc += 4;
+            break;
+        }
+        case 0x18:
+        {
+            printf("[EE] DADDI\n");
+            int rs = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 imm = (s16)(opcode & 0xffff);
+            if(rt)
+            {
+                r[rt] = (s64)r[rs] + imm;
+            }
+            break;
+        }
+        case 0x19:
+        {
+            printf("[EE] DADDIU\n");
+            int rs = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 imm = (s16)(opcode & 0xffff);
+            if(rt)
+            {
+                r[rt] = (s64)r[rs] + imm;
+            }
+            break;
+        }
+        case 0x1a:
+        {
+            printf("[EE] LDL\n");
+            const u64 ldl_mask[8] = {0x00ffffffffffffffULL, 0x0000ffffffffffffULL, 0x000000ffffffffff, 0xffffffffULL,
+            0x00ffffffULL, 0x0000ffffULL, 0xff, 0};
+            const u8 ldl_shift[8] = {56, 48, 40, 32, 24, 16, 8, 0};
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            int shift = addr & 7;
+            if(rt)
+            {
+                u64 data = rd(addr & ~7);
+                r[rt] = (r[rt] & ldl_mask[shift]) | (data << ldl_shift[shift]);
+            }
+            break;
+        }
+        case 0x1b:
+        {
+            printf("[EE] LDR\n");
+            const u64 ldr_mask[8] = {0, 0xff00000000000000ULL, 0xffff000000000000ULL, 0xffffff0000000000ULL,
+            0xffffffff00000000ULL, 0xffffffffff000000ULL, 0xffffffffffff0000ULL, 0xffffffffffffff00ULL};
+            const u8 ldr_shift[8] = {0, 8, 16, 24, 32, 40, 48, 56};
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            int shift = addr & 7;
+            if(rt)
+            {
+                u64 data = rd(addr & ~7);
+                r[rt] = r[rt] = (r[rt] & ldr_mask[shift]) | (data >> ldr_shift[shift]);;
+            }
+            break;
+        }
+        case 0x1e:
+        {
+            printf("[EE] LQ\n");
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            if(rt)
+            {
+                u128 data = rq(addr);
+                r[rt] = data.lo;
+                rhi[rt] = data.hi;
+            }
+            break;
+        }
+        case 0x1f:
+        {
+            printf("[EE] SQ\n");
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            u128 data;
+            data.lo = r[rt];
+            data.hi = rhi[rt];
+            wq(addr, data);
+            break;
+        }
         case 0x20:
         {
             printf("[EE] LB\n");
@@ -625,6 +1126,38 @@ void ee_cpu::tick()
             {
                 s64 temp = (s8)rb(addr);
                 r[rt] = (u64)temp;
+            }
+            break;
+        }
+        case 0x21:
+        {
+            printf("[EE] LH\n");
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            if(rt)
+            {
+                s64 temp = (s16)rh(addr);
+                r[rt] = (u64)temp;
+            }
+            break;
+        }
+        case 0x22:
+        {
+            printf("[EE] LWL\n");
+            const u32 lwl_mask[4] = {0x00ffffff, 0x0000ffff, 0x000000ff, 0};
+            const u8 lwl_shift[4] = {24, 16, 8, 0};
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            int shift = addr & 3;
+            if(rt)
+            {
+                u32 data = rw(addr & ~3);
+                s64 data2 = (s32)((r[rt] & lwl_mask[shift]) | (data << lwl_shift[shift]));
+                r[rt] = data2;
             }
             break;
         }
@@ -642,6 +1175,54 @@ void ee_cpu::tick()
             }
             break;
         }
+        case 0x24:
+        {
+            printf("[EE] LBU\n");
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            if(rt) r[rt] = rb(addr);
+            break;
+        }
+        case 0x25:
+        {
+            printf("[EE] LHU\n");
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            if(rt) r[rt] = rh(addr);
+            break;
+        }
+        case 0x26:
+        {
+            printf("[EE] LWR\n");
+            const u32 lwr_mask[4] = {0, 0xff000000, 0xffff0000, 0xffffff00};
+            const u8 lwr_shift[4] = {0, 8, 16, 24};
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            int shift = addr & 3;
+            if(rt)
+            {
+                u32 data = rw(addr & ~3);
+                s64 data2 = (s32)((r[rt] & lwr_mask[shift]) | (data >> lwr_shift[shift]));
+                r[rt] = data2;
+            }
+            break;
+        }
+        case 0x27:
+        {
+            printf("[EE] LWU\n");
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            if(rt) r[rt] = rw(addr);
+            break;
+        }
         case 0x28:
         {
             printf("[EE] SB\n");
@@ -649,7 +1230,32 @@ void ee_cpu::tick()
             int rt = (opcode >> 16) & 0x1f;
             s32 offset = (s16)(opcode & 0xffff);
             u32 addr = r[base] + offset;
-            ww(addr, (u8)r[rt]);
+            wb(addr, (u8)r[rt]);
+            break;
+        }
+        case 0x29:
+        {
+            printf("[EE] SH\n");
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            ww(addr, (u16)r[rt]);
+            break;
+        }
+        case 0x2a:
+        {
+            printf("[EE] SWL\n");
+            const u32 swl_mask[4] = {0x00ffffff, 0x0000ffff, 0x000000ff, 0};
+            const u8 swl_shift[4] = {24, 16, 8, 0};
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            int shift = addr & 3;
+            u32 data = rw(addr & ~3);
+            data = (r[rt] >> swl_shift[shift]) | (data & swl_mask[shift]);
+            ww(addr & ~3, data);
             break;
         }
         case 0x2b:
@@ -662,6 +1268,62 @@ void ee_cpu::tick()
             ww(addr, (u32)r[rt]);
             break;
         }
+        case 0x2c:
+        {
+            printf("[EE] SDL\n");
+            const u64 sdl_mask[8] = {0x00ffffffffffffffULL, 0x0000ffffffffffffULL, 0x000000ffffffffff, 0xffffffffULL,
+            0x00ffffffULL, 0x0000ffffULL, 0xff, 0};
+            const u8 sdl_shift[8] = {56, 48, 40, 32, 24, 16, 8, 0};
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            int shift = addr & 7;
+            u64 data = rd(addr & ~7);
+            data = (r[rt] >> sdl_shift[shift]) | (data & sdl_mask[shift]);
+            wd(addr & ~7, data);
+            break;
+        }
+        case 0x2d:
+        {
+            printf("[EE] SDR\n");
+            const u64 sdr_mask[8] = {0, 0xff00000000000000ULL, 0xffff000000000000ULL, 0xffffff0000000000ULL,
+            0xffffffff00000000ULL, 0xffffffffff000000ULL, 0xffffffffffff0000ULL, 0xffffffffffffff00ULL};
+            const u8 sdr_shift[8] = {0, 8, 16, 24, 32, 40, 48, 56};
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            int shift = addr & 7;
+            u64 data = rd(addr & ~7);
+            data = (r[rt] << sdr_shift[shift]) | (data & sdr_mask[shift]);
+            wd(addr & ~7, data);
+            break;
+        }
+        case 0x2e:
+        {
+            printf("[EE] SWR\n");
+            const u32 swr_mask[4] = {0, 0xff000000, 0xffff0000, 0xffffff00};
+            const u8 swr_shift[4] = {0, 8, 16, 24};
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            int shift = addr & 3;
+            u32 data = rw(addr & ~3);
+            data = (r[rt] << swr_shift[shift]) | (data & swr_mask[shift]);
+            ww(addr & ~3, data);
+            break;
+        }
+        case 0x2f:
+        {
+            int base = (opcode >> 21) & 0x1f;
+            int op = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            printf("[EE] CACHE op %02x addr %08x\n", op, addr);
+            break;
+        }
         case 0x31:
         {
             printf("[EE] LWC1\n");
@@ -670,6 +1332,25 @@ void ee_cpu::tick()
             s32 offset = (s16)(opcode & 0xffff);
             u32 addr = r[base] + offset;
             fpr[ft].uw = rw(addr);
+            break;
+        }
+        case 0x33:
+        {
+            int base = (opcode >> 21) & 0x1f;
+            int hint = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            printf("[EE] PREF hint %02x addr %08x\n", hint, addr);
+            break;
+        }
+        case 0x37:
+        {
+            printf("[EE] LD\n");
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            if(rt) r[rt] = rd(addr);
             break;
         }
         case 0x39:

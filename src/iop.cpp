@@ -20,6 +20,12 @@ u8 iop_cpu::rb(u32 addr)
     return rb_real(device, phys_addr);
 }
 
+u16 iop_cpu::rh(u32 addr)
+{
+    u32 phys_addr = addr & 0x1fffffff;
+    return rh_real(device, phys_addr);
+}
+
 u32 iop_cpu::rw(u32 addr)
 {
     u32 phys_addr = addr & 0x1fffffff;
@@ -30,6 +36,12 @@ void iop_cpu::wb(u32 addr, u8 data)
 {
     u32 phys_addr = addr & 0x1fffffff;
     wb_real(device, phys_addr, data);
+}
+
+void iop_cpu::wh(u32 addr, u16 data)
+{
+    u32 phys_addr = addr & 0x1fffffff;
+    wh_real(device, phys_addr, data);
 }
 
 void iop_cpu::ww(u32 addr, u32 data)
@@ -215,6 +227,42 @@ void iop_cpu::tick()
                     }
                     break;
                 }
+                case 0x20:
+                {
+                    printf("[IOP] ADD\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd) r[rd] = r[rs] + r[rt];
+                    break;
+                }
+                case 0x21:
+                {
+                    printf("[IOP] ADDU\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd) r[rd] = r[rs] + r[rt];
+                    break;
+                }
+                case 0x22:
+                {
+                    printf("[IOP] SUB\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd) r[rd] = r[rs] - r[rt];
+                    break;
+                }
+                case 0x23:
+                {
+                    printf("[IOP] SUBU\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd) r[rd] = r[rs] - r[rt];
+                    break;
+                }
                 case 0x24:
                 {
                     printf("[IOP] AND\n");
@@ -249,6 +297,97 @@ void iop_cpu::tick()
                     int rt = (opcode >> 16) & 0x1f;
                     int rd = (opcode >> 11) & 0x1f;
                     if(rd) r[rd] = ~(r[rs] | r[rt]);
+                    break;
+                }
+                case 0x2a:
+                {
+                    printf("[IOP] SLT\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd)
+                    {
+                        if((s32)r[rs] < (s32)r[rt]) r[rd] = 1;
+                        else r[rd] = 0;
+                    }
+                    break;
+                }
+                case 0x2b:
+                {
+                    printf("[IOP] SLTU\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    if(rd)
+                    {
+                        if(r[rs] < r[rt]) r[rd] = 1;
+                        else r[rd] = 0;
+                    }
+                    break;
+                }
+            }
+            break;
+        }
+        case 0x01:
+        {
+            switch((opcode >> 16) & 0x1f)
+            {
+                case 0x00:
+                {
+                    printf("[IOP] BLTZ\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    s32 offset = (s16)(opcode & 0xffff);
+                    offset <<= 2;
+                    if((s32)r[rs] < 0)
+                    {
+                        branch_on = true;
+                        newpc = pc + offset + 4;
+                        delay_slot = 1;
+                    }
+                    break;
+                }
+                case 0x01:
+                {
+                    printf("[IOP] BGEZ\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    s32 offset = (s16)(opcode & 0xffff);
+                    offset <<= 2;
+                    if((s32)r[rs] >= 0)
+                    {
+                        branch_on = true;
+                        newpc = pc + offset + 4;
+                        delay_slot = 1;
+                    }
+                    break;
+                }
+                case 0x10:
+                {
+                    printf("[IOP] BLTZAL\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    s32 offset = (s16)(opcode & 0xffff);
+                    offset <<= 2;
+                    if((s32)r[rs] < 0)
+                    {
+                        branch_on = true;
+                        newpc = pc + offset + 4;
+                        delay_slot = 1;
+                        r[31] = pc + 8;
+                    }
+                    break;
+                }
+                case 0x11:
+                {
+                    printf("[IOP] BGEZAL\n");
+                    int rs = (opcode >> 21) & 0x1f;
+                    s32 offset = (s16)(opcode & 0xffff);
+                    offset <<= 2;
+                    if((s32)r[rs] >= 0)
+                    {
+                        branch_on = true;
+                        newpc = pc + offset + 4;
+                        delay_slot = 1;
+                        r[31] = pc + 8;
+                    }
                     break;
                 }
             }
@@ -299,6 +438,34 @@ void iop_cpu::tick()
             s32 offset = (s16)(opcode & 0xffff);
             offset <<= 2;
             if(r[rt] != r[rs])
+            {
+                branch_on = true;
+                newpc = pc + offset + 4;
+                delay_slot = 1;
+            }
+            break;
+        }
+        case 0x06:
+        {
+            printf("[IOP] BLEZ\n");
+            int rs = (opcode >> 21) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            offset <<= 2;
+            if((s32)r[rs] <= 0)
+            {
+                branch_on = true;
+                newpc = pc + offset + 4;
+                delay_slot = 1;
+            }
+            break;
+        }
+        case 0x07:
+        {
+            printf("[IOP] BGTZ\n");
+            int rs = (opcode >> 21) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            offset <<= 2;
+            if((s32)r[rs] > 0)
             {
                 branch_on = true;
                 newpc = pc + offset + 4;
@@ -464,19 +631,9 @@ void iop_cpu::tick()
                             printf("[IOP] TLBWR\n");
                             break;
                         }
-                        case 0x18:
+                        case 0x10:
                         {
-                            printf("[IOP] ERET\n");
-                            break;
-                        }
-                        case 0x34:
-                        {
-                            printf("[IOP] EI\n");
-                            break;
-                        }
-                        case 0x35:
-                        {
-                            printf("[IOP] DI\n");
+                            printf("[IOP] RFE\n");
                             break;
                         }
                     }
@@ -495,6 +652,34 @@ void iop_cpu::tick()
             if(rt) r[rt] = (s32)(s8)rb(addr);
             break;
         }
+        case 0x21:
+        {
+            printf("[IOP] LH\n");
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            if(rt) r[rt] = (s32)(s16)rh(addr);
+            break;
+        }
+        case 0x22:
+        {
+            printf("[IOP] LWL\n");
+            const u32 lwl_mask[4] = {0x00ffffff, 0x0000ffff, 0x000000ff, 0};
+            const u8 lwl_shift[4] = {24, 16, 8, 0};
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            int shift = addr & 3;
+            if(rt)
+            {
+                u32 data = rw(addr & ~3);
+                data = (r[rt] & lwl_mask[shift]) | (data << lwl_shift[shift]);
+                r[rt] = data;
+            }
+            break;
+        }
         case 0x23:
         {
             printf("[IOP] LW\n");
@@ -505,6 +690,44 @@ void iop_cpu::tick()
             if(rt) r[rt] = rw(addr);
             break;
         }
+        case 0x24:
+        {
+            printf("[IOP] LBU\n");
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            if(rt) r[rt] = rb(addr);
+            break;
+        }
+        case 0x25:
+        {
+            printf("[IOP] LHU\n");
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            if(rt) r[rt] = rh(addr);
+            break;
+        }
+        case 0x26:
+        {
+            printf("[IOP] LWR\n");
+            const u32 lwr_mask[4] = {0, 0xff000000, 0xffff0000, 0xffffff00};
+            const u8 lwr_shift[4] = {0, 8, 16, 24};
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            int shift = addr & 3;
+            if(rt)
+            {
+                u32 data = rw(addr & ~3);
+                data = (r[rt] & lwr_mask[shift]) | (data >> lwr_shift[shift]);
+                r[rt] = data;
+            }
+            break;
+        }
         case 0x28:
         {
             printf("[IOP] SB\n");
@@ -512,7 +735,32 @@ void iop_cpu::tick()
             int rt = (opcode >> 16) & 0x1f;
             s32 offset = (s16)(opcode & 0xffff);
             u32 addr = r[base] + offset;
-            ww(addr, (u8)r[rt]);
+            wb(addr, (u8)r[rt]);
+            break;
+        }
+        case 0x29:
+        {
+            printf("[IOP] SH\n");
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            wh(addr, (u16)r[rt]);
+            break;
+        }
+        case 0x2a:
+        {
+            printf("[IOP] SWL\n");
+            const u32 swl_mask[4] = {0x00ffffff, 0x0000ffff, 0x000000ff, 0};
+            const u8 swl_shift[4] = {24, 16, 8, 0};
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            int shift = addr & 3;
+            u32 data = rw(addr & ~3);
+            data = (r[rt] >> swl_shift[shift]) | (data & swl_mask[shift]);
+            ww(addr & ~3, data);
             break;
         }
         case 0x2b:
@@ -523,6 +771,21 @@ void iop_cpu::tick()
             s32 offset = (s16)(opcode & 0xffff);
             u32 addr = r[base] + offset;
             ww(addr, r[rt]);
+            break;
+        }
+        case 0x3e:
+        {
+            printf("[IOP] SWR\n");
+            const u32 swr_mask[4] = {0, 0xff000000, 0xffff0000, 0xffffff00};
+            const u8 swr_shift[4] = {0, 8, 16, 24};
+            int base = (opcode >> 21) & 0x1f;
+            int rt = (opcode >> 16) & 0x1f;
+            s32 offset = (s16)(opcode & 0xffff);
+            u32 addr = r[base] + offset;
+            int shift = addr & 3;
+            u32 data = rw(addr & ~3);
+            data = (r[rt] << swr_shift[shift]) | (data & swr_mask[shift]);
+            ww(addr & ~3, data);
             break;
         }
     }

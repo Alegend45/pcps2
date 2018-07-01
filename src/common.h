@@ -21,3 +21,12 @@ typedef uint32_t u32;
 typedef int32_t s32;
 typedef uint64_t u64;
 typedef int64_t s64;
+
+struct u128
+{
+    u64 lo;
+    u64 hi;
+
+    u128();
+    u128(const u128& other);
+};

@@ -26,12 +26,19 @@ struct scph15000
 };
 
 u8 scph15000_ee_rb(void* dev, u32 addr);
+u16 scph15000_ee_rh(void* dev, u32 addr);
 u32 scph15000_ee_rw(void* dev, u32 addr);
+u64 scph15000_ee_rd(void* dev, u32 addr);
+u128 scph15000_ee_rq(void* dev, u32 addr);
 void scph15000_ee_wb(void* dev, u32 addr, u8 data);
+void scph15000_ee_wh(void* dev, u32 addr, u16 data);
 void scph15000_ee_ww(void* dev, u32 addr, u32 data);
 void scph15000_ee_wd(void* dev, u32 addr, u64 data);
+void scph15000_ee_wq(void* dev, u32 addr, u128 data);
 
 u8 scph15000_iop_rb(void* dev, u32 addr);
+u16 scph15000_iop_rh(void* dev, u32 addr);
 u32 scph15000_iop_rw(void* dev, u32 addr);
 void scph15000_iop_wb(void* dev, u32 addr, u8 data);
+void scph15000_iop_wh(void* dev, u32 addr, u16 data);
 void scph15000_iop_ww(void* dev, u32 addr, u32 data);

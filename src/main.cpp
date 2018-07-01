@@ -49,10 +49,15 @@ int main(int ac, char** av)
         iop.device = &dev;
 
         ee.rb_real = scph10000_ee_rb;
+        ee.rh_real = scph10000_ee_rh;
         ee.rw_real = scph10000_ee_rw;
+        ee.rd_real = scph10000_ee_rd;
+        ee.rq_real = scph10000_ee_rq;
         ee.wb_real = scph10000_ee_wb;
+        ee.wh_real = scph10000_ee_wh;
         ee.ww_real = scph10000_ee_ww;
         ee.wd_real = scph10000_ee_wd;
+        ee.wq_real = scph10000_ee_wq;
 
         iop.rb_real = scph10000_iop_rb;
         iop.rw_real = scph10000_iop_rw;
@@ -64,7 +69,7 @@ int main(int ac, char** av)
         fread(dev.bios, 1, 0x400000, fp);
         fclose(fp);
 
-        for(int i = 0; i < 500; i++)
+        for(int i = 0; i < 5000; i++)
         {
             ee.tick();
             iop.tick();
@@ -92,10 +97,15 @@ int main(int ac, char** av)
         iop.device = &dev;
 
         ee.rb_real = scph15000_ee_rb;
+        ee.rh_real = scph15000_ee_rh;
         ee.rw_real = scph15000_ee_rw;
+        ee.rd_real = scph15000_ee_rd;
+        ee.rq_real = scph15000_ee_rq;
         ee.wb_real = scph15000_ee_wb;
+        ee.wh_real = scph15000_ee_wh;
         ee.ww_real = scph15000_ee_ww;
         ee.wd_real = scph15000_ee_wd;
+        ee.wq_real = scph15000_ee_wq;
 
         iop.rb_real = scph15000_iop_rb;
         iop.rw_real = scph15000_iop_rw;
