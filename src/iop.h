@@ -8,6 +8,36 @@ struct iop_cpu
 
     u32 lo, hi;
 
+    u32 cop0_count;
+
+    union
+    {
+        struct
+        {
+            u32 current_int_enable : 1;
+            u32 current_in_user_mode : 1;
+            u32 previous_int_enable : 1;
+            u32 previous_in_user_mode : 1;
+            u32 old_int_enable : 1;
+            u32 old_in_user_mode : 1;
+            u32 reserved1 : 2;
+            u32 interrupt_mask : 8;
+            u32 isolate_cache : 1;
+            u32 swap_caches : 1;
+            u32 cache_parity_zero : 1;
+            u32 data_cache_last_load_hit : 1;
+            u32 cache_parity_error : 1;
+            u32 tlb_shutdown : 1;
+            u32 boot_except_vectors_rom : 1;
+            u32 reserved2 : 5;
+            u32 cop0_usable : 1;
+            u32 cop1_usable : 1;
+            u32 cop2_usable : 1;
+            u32 cop3_enable : 1;
+        };
+        u32 whole;
+    } cop0_status;
+
     u32 pc, newpc;
     bool inc_pc;
     int delay_slot;

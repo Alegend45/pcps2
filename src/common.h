@@ -1,17 +1,19 @@
 #pragma once
 
+#include <cassert>
+#include <climits>
+#include <cmath>
+#include <cinttypes>
+#include <cstdlib>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <vector>
+#include <algorithm>
 #include <functional>
-#include <string>
-#include <cstdlib>
 #include <iostream>
-#include <climits>
-#include <cmath>
-#include <cassert>
+#include <string>
 #include <utility>
+#include <vector>
 
 typedef uint8_t u8;
 typedef int8_t s8;

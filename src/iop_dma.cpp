@@ -92,6 +92,7 @@ u32 iop_dma_t::dma_rw(u32 addr)
             return result;
         }
     }
+    return 0;
 }
 
 void iop_dma_t::dma_ww(u32 addr, u32 data)

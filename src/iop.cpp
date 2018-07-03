@@ -11,16 +11,18 @@ void iop_cpu::init()
     inc_pc = true;
     delay_slot = 0;
     branch_on = false;
+
+    cop0_count = 0;
+    cop0_status.whole = 0;
+    cop0_status.boot_except_vectors_rom = 1;
 }
 
 //TODO: This MMU emulation is COMPLETELY inaccurate, but it's good enough for now :/
 u32 iop_cpu::translate_addr(u32 addr)
 {
-    if(addr < 0x80000000) return addr & 0x7fffffff;
-    else if(addr < 0xa0000000) return addr - 0x80000000;
-    else if(addr < 0xc0000000) return addr - 0xa0000000;
-    else if(addr < 0xe0000000) return addr - 0xc0000000;
-    else return addr - 0xe0000000;
+    if(addr >= 0x80000000 && addr < 0xa0000000) return addr - 0x80000000;
+    else if(addr >= 0xa0000000 && addr < 0xc0000000) return addr - 0xa0000000;
+    else return addr;
 }
 
 u8 iop_cpu::rb(u32 addr)
@@ -63,6 +65,12 @@ void iop_cpu::tick()
 {
     u32 opcode = rw(pc);
     printf("[IOP] Opcode: %08x\n[IOP] PC: %08x\n", opcode, pc);
+    for(int i = 0; i < 32; i++)
+    {
+        printf("[IOP] R%d: %08x\n", i, r[i]);
+    }
+
+#define printf(fmt, ...)
 
     switch(opcode >> 26)
     {
@@ -181,7 +189,7 @@ void iop_cpu::tick()
                     printf("[IOP] MULT\n");
                     int rs = (opcode >> 21) & 0x1f;
                     int rt = (opcode >> 16) & 0x1f;
-                    s64 result = (s32)r[rs] * (s32)r[rt];
+                    s64 result = (s64)(s32)r[rs] * (s64)(s32)r[rt];
                     lo = (u32)result;
                     hi = result >> 32;
                     break;
@@ -191,7 +199,7 @@ void iop_cpu::tick()
                     printf("[IOP] MULTU\n");
                     int rs = (opcode >> 21) & 0x1f;
                     int rt = (opcode >> 16) & 0x1f;
-                    u64 result = r[rs] * r[rt];
+                    u64 result = (u64)r[rs] * (u64)r[rt];
                     lo = (u32)result;
                     hi = result >> 32;
                     break;
@@ -540,7 +548,7 @@ void iop_cpu::tick()
             int rs = (opcode >> 21) & 0x1f;
             int rt = (opcode >> 16) & 0x1f;
             u16 imm = opcode & 0xffff;
-            if(rt) r[rt] &= imm;
+            if(rt) r[rt] = r[rs] & imm;
             break;
         }
         case 0x0d:
@@ -549,7 +557,7 @@ void iop_cpu::tick()
             int rs = (opcode >> 21) & 0x1f;
             int rt = (opcode >> 16) & 0x1f;
             u16 imm = opcode & 0xffff;
-            if(rt) r[rt] |= imm;
+            if(rt) r[rt] = r[rs] | imm;
             break;
         }
         case 0x0e:
@@ -558,7 +566,7 @@ void iop_cpu::tick()
             int rs = (opcode >> 21) & 0x1f;
             int rt = (opcode >> 16) & 0x1f;
             u16 imm = opcode & 0xffff;
-            if(rt) r[rt] ^= imm;
+            if(rt) r[rt] = r[rs] ^ imm;
             break;
         }
         case 0x0f:
@@ -581,6 +589,16 @@ void iop_cpu::tick()
                     int rd = (opcode >> 11) & 0x1f;
                     switch(rd)
                     {
+                        case 0x09:
+                        {
+                            if(rt) r[rt] = cop0_count;
+                            break;
+                        }
+                        case 0x0c:
+                        {
+                            if(rt) r[rt] = cop0_status.whole;
+                            break;
+                        }
                         case 0x0f:
                         {
                             if(rt) r[rt] = 0x0000001f; //TODO: hpsx64 value. VERIFY!
@@ -592,6 +610,21 @@ void iop_cpu::tick()
                 case 0x04:
                 {
                     printf("[IOP] MTC0\n");
+                    int rt = (opcode >> 16) & 0x1f;
+                    int rd = (opcode >> 11) & 0x1f;
+                    switch(rd)
+                    {
+                        case 0x09:
+                        {
+                            cop0_count = r[rt];
+                            break;
+                        }
+                        case 0x0c:
+                        {
+                            cop0_status.whole = r[rt];
+                            break;
+                        }
+                    }
                     break;
                 }
                 case 0x08:
@@ -812,3 +845,5 @@ void iop_cpu::tick()
         else delay_slot--;
     }
 }
+
+#undef printf

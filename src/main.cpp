@@ -76,19 +76,39 @@ int main(int ac, char** av)
     
 
         FILE* fp = fopen("roms/ps2-0100j-20000117.bin","rb");
-        fread(dev.bios, 1, 0x400000, fp);
+        if(!fp)
+        {
+            printf("unable to open %s, are you sure it exists?\n", "roms/ps2-0100j-20000117.bin");
+            return 3;
+        }
+        if(fread(dev.bios, 1, 0x400000, fp) != 0x400000)
+        {
+            fclose(fp);
+            return 4;
+        }
         fclose(fp);
 
-        for(int i = 0; i < 1000000; i++)
+        for(int i = 0; i < 500000; i+=8)
         {
-            ee.tick();
-            current_time += ee_atto;
-            if(current_time > iop_atto)
+            int cycles_to_run = 8;
+            int cycles = cycles_to_run;
+            while(cycles_to_run > 0)
+            {
+                cycles_to_run--;
+                ee.tick();
+            }
+            ee.cop0_count += cycles;
+            current_time += ee_atto * cycles;
+            cycles >>= 3;
+            for(int j = 0; j < cycles; j++)
             {
                 iop.tick();
+                iop.cop0_count += cycles;
                 current_time -= iop_atto;
             }
         }
+
+        dev.exit();
     }
 
     if(model == "scph15000")
@@ -129,7 +149,16 @@ int main(int ac, char** av)
         iop.ww_real = scph15000_iop_ww;
 
         FILE* fp = fopen("roms/ps2-0101j-20000217.bin","rb");
-        fread(dev.bios, 1, 0x400000, fp);
+        if(!fp)
+        {
+            printf("unable to open %s, are you sure it exists?\n", "roms/ps2-0101j-20000217.bin");
+            return 3;
+        }
+        if(fread(dev.bios, 1, 0x400000, fp) != 0x400000)
+        {
+            fclose(fp);
+            return 4;
+        }
         fclose(fp);
 
         for(int i = 0; i < 100000; i++)
@@ -142,6 +171,8 @@ int main(int ac, char** av)
                 current_time -= iop_atto;
             }
         }
+
+        dev.exit();
     }
 
     if(model == "scph30000")
@@ -183,10 +214,19 @@ int main(int ac, char** av)
     
 
         FILE* fp = fopen("roms/ps2-0120a-20000902.bin","rb");
-        fread(dev.bios, 1, 0x400000, fp);
+        if(!fp)
+        {
+            printf("unable to open %s, are you sure it exists?\n", "roms/ps2-0120a-20000902.bin");
+            return 3;
+        }
+        if(fread(dev.bios, 1, 0x400000, fp) != 0x400000)
+        {
+            fclose(fp);
+            return 4;
+        }
         fclose(fp);
 
-        for(int i = 0; i < 1000000; i++)
+        for(int i = 0; i < 100000; i++)
         {
             ee.tick();
             current_time += ee_atto;
@@ -196,6 +236,8 @@ int main(int ac, char** av)
                 current_time -= iop_atto;
             }
         }
+
+        dev.exit();
     }
 
     return 0;

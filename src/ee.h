@@ -8,6 +8,7 @@ struct ee_cpu
     u64 rhi[32];
 
     u64 lo, hi;
+    u64 lo1, hi1;
     u64 ee_sa;
 
     u8 interrupt_mask;

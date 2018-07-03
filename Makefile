@@ -1,5 +1,5 @@
 CXX=g++
-CFLAGS=-std=c++14 -g
+CFLAGS=-std=c++17 -g
 LIBS=
 VPATH=src
 OBJ = attotime.o \
