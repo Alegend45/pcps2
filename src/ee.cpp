@@ -861,7 +861,7 @@ void ee_cpu::tick()
         {
             printf("[EE] LUI\n");
             int rt = (opcode >> 16) & 0x1f;
-            s64 imm = (s32)((opcode & 0xffff) << 16);
+            u64 imm = (u32)((s32)(s16)(opcode & 0xffff) << 16);
             if(rt) r[rt] = imm;
             break;
         }
