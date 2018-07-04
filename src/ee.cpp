@@ -90,7 +90,7 @@ void ee_cpu::tick()
     printf("[EE] Opcode: %08x\n[EE] PC: %08x\n", opcode, pc);
     for(int i = 0; i < 32; i++)
     {
-        printf("[EE] R%d: %016" PRIx64 "%016" PRIx64 "\n", i, rhi[i], r[i]);
+        printf("[EE] R%d: %016x%016x\n", i, rhi[i], r[i]);
     }
 
 #define printf(fmt, ...)
@@ -281,7 +281,7 @@ void ee_cpu::tick()
                     int rs = (opcode >> 21) & 0x1f;
                     int rt = (opcode >> 16) & 0x1f;
                     int rd = (opcode >> 11) & 0x1f;
-                    s64 result = (s64)(s32)r[rs] * (s64)(s32)r[rt];
+                    s64 result = (s32)r[rs] * (s32)r[rt];
                     s64 result_lo = (s32)result;
                     s64 result_hi = (s32)(result >> 32);
                     lo = result_lo;
@@ -295,7 +295,7 @@ void ee_cpu::tick()
                     int rs = (opcode >> 21) & 0x1f;
                     int rt = (opcode >> 16) & 0x1f;
                     int rd = (opcode >> 11) & 0x1f;
-                    u64 result = (u64)(u32)r[rs] * (u64)(u32)r[rt];
+                    u64 result = (u32)r[rs] * (u32)r[rt];
                     u32 result_lo = (u32)result;
                     u32 result_hi = result >> 32;
                     lo = result_lo;
@@ -861,7 +861,7 @@ void ee_cpu::tick()
         {
             printf("[EE] LUI\n");
             int rt = (opcode >> 16) & 0x1f;
-            u64 imm = (u32)((s32)(s16)(opcode & 0xffff) << 16);
+            s64 imm = (s32)((opcode & 0xffff) << 16);
             if(rt) r[rt] = imm;
             break;
         }
@@ -1112,7 +1112,7 @@ void ee_cpu::tick()
             if(rt)
             {
                 u64 data = rd(addr & ~7);
-                r[rt] = (r[rt] & ldr_mask[shift]) | (data >> ldr_shift[shift]);;
+                r[rt] = r[rt] = (r[rt] & ldr_mask[shift]) | (data >> ldr_shift[shift]);;
             }
             break;
         }
@@ -1126,7 +1126,7 @@ void ee_cpu::tick()
                     int rs = (opcode >> 21) & 0x1f;
                     int rt = (opcode >> 16) & 0x1f;
                     int rd = (opcode >> 11) & 0x1f;
-                    s64 result = (s64)(s32)r[rs] * (s64)(s32)r[rt];
+                    s64 result = (s32)r[rs] * (s32)r[rt];
                     u64 lo_hi = (u32)lo | ((u64)(u32)hi << 32);
                     result += lo_hi;
                     s64 result_lo = (s32)result;
@@ -1142,7 +1142,7 @@ void ee_cpu::tick()
                     int rs = (opcode >> 21) & 0x1f;
                     int rt = (opcode >> 16) & 0x1f;
                     int rd = (opcode >> 11) & 0x1f;
-                    s64 result = (u64)(u32)r[rs] * (u64)(u32)r[rt];
+                    s64 result = (u32)r[rs] * (u32)r[rt];
                     u64 lo_hi = (u32)lo | ((u64)(u32)hi << 32);
                     result = (u64)result + lo_hi;
                     s64 result_lo = (s32)result;
@@ -1831,7 +1831,7 @@ void ee_cpu::tick()
                             int rt = (opcode >> 16) & 0x1f;
                             int rd = (opcode >> 11) & 0x1f;
 
-                            s64 result = (s64)(s32)r[rs] * (s64)(s32)r[rt];
+                            s64 result = (s32)r[rs] * (s32)r[rt];
                             u64 lo_hi0 = (u32)lo | ((u64)(u32)hi << 32);
                             result += lo_hi0;
                             s64 result_lo = (s32)result;
@@ -1840,7 +1840,7 @@ void ee_cpu::tick()
                             hi = result_hi;
                             if(rd) r[rd] = result;
 
-                            s64 result1 = (s64)(s32)rhi[rs] * (s64)(s32)rhi[rt];
+                            s64 result1 = (s32)rhi[rs] * (s32)rhi[rt];
                             u64 lo_hi1 = (u32)lo1 | ((u64)(u32)hi1 << 32);
                             result1 += lo_hi1;
                             s64 result_lo1 = (s32)result1;
@@ -1861,8 +1861,8 @@ void ee_cpu::tick()
 
                             if(rd)
                             {
-                                r[rd] = (s64)((s64)(s32)r[rt] << shift_low);
-                                rhi[rd] = (s64)((s64)(s32)rhi[rt] << shift_high);
+                                r[rd] = (s64)((s32)r[rt] << shift_low);
+                                rhi[rd] = (s64)((s32)rhi[rt] << shift_high);
                             }
                             break;
                         }
@@ -1889,7 +1889,7 @@ void ee_cpu::tick()
                             int rt = (opcode >> 16) & 0x1f;
                             int rd = (opcode >> 11) & 0x1f;
 
-                            s64 result = (s64)(s32)r[rs] * (s64)(s32)r[rt];
+                            s64 result = (s32)r[rs] * (s32)r[rt];
                             u64 lo_hi0 = (u32)lo | ((u64)(u32)hi << 32);
                             result = lo_hi0 - result;
                             s64 result_lo = (s32)result;
@@ -1898,7 +1898,7 @@ void ee_cpu::tick()
                             hi = result_hi;
                             if(rd) r[rd] = result;
 
-                            s64 result1 = (s64)(s32)rhi[rs] * (s64)(s32)rhi[rt];
+                            s64 result1 = (s32)rhi[rs] * (s32)rhi[rt];
                             u64 lo_hi1 = (u32)lo1 | ((u64)(u32)hi1 << 32);
                             result1 = lo_hi1 - result1;
                             s64 result_lo1 = (s32)result1;
@@ -1961,14 +1961,14 @@ void ee_cpu::tick()
                             int rt = (opcode >> 16) & 0x1f;
                             int rd = (opcode >> 11) & 0x1f;
 
-                            s64 result = (s64)(s32)r[rs] * (s64)(s32)r[rt];
+                            s64 result = (s32)r[rs] * (s32)r[rt];
                             s64 result_lo = (s32)result;
                             s64 result_hi = (s32)(result >> 32);
                             lo = result_lo;
                             hi = result_hi;
                             if(rd) r[rd] = result;
 
-                            s64 result1 = (s64)(s32)rhi[rs] * (s64)(s32)rhi[rt];
+                            s64 result1 = (s32)rhi[rs] * (s32)rhi[rt];
                             s64 result_lo1 = (s32)result1;
                             s64 result_hi1 = (s32)(result1 >> 32);
                             lo1 = result_lo1;
@@ -2458,7 +2458,7 @@ void ee_cpu::tick()
                     int rs = (opcode >> 21) & 0x1f;
                     int rt = (opcode >> 16) & 0x1f;
                     int rd = (opcode >> 11) & 0x1f;
-                    s64 result = (s64)(s32)r[rs] * (s64)(s32)r[rt];
+                    s64 result = (s32)r[rs] * (s32)r[rt];
                     s64 result_lo = (s32)result;
                     s64 result_hi = (s32)(result >> 32);
                     lo1 = result_lo;
@@ -2472,7 +2472,7 @@ void ee_cpu::tick()
                     int rs = (opcode >> 21) & 0x1f;
                     int rt = (opcode >> 16) & 0x1f;
                     int rd = (opcode >> 11) & 0x1f;
-                    u64 result = (u64)(u32)r[rs] * (u64)(u32)r[rt];
+                    u64 result = (u32)r[rs] * (u32)r[rt];
                     u32 result_lo = (u32)result;
                     u32 result_hi = result >> 32;
                     lo1 = result_lo;
@@ -2526,7 +2526,7 @@ void ee_cpu::tick()
                     int rs = (opcode >> 21) & 0x1f;
                     int rt = (opcode >> 16) & 0x1f;
                     int rd = (opcode >> 11) & 0x1f;
-                    s64 result = (s64)(s32)r[rs] * (s64)(s32)r[rt];
+                    s64 result = (s32)r[rs] * (s32)r[rt];
                     u64 lo_hi = (u32)lo1 | ((u64)(u32)hi1 << 32);
                     result += lo_hi;
                     s64 result_lo = (s32)result;
@@ -2542,7 +2542,7 @@ void ee_cpu::tick()
                     int rs = (opcode >> 21) & 0x1f;
                     int rt = (opcode >> 16) & 0x1f;
                     int rd = (opcode >> 11) & 0x1f;
-                    s64 result = (u64)(u32)r[rs] * (u64)(u32)r[rt];
+                    s64 result = (u32)r[rs] * (u32)r[rt];
                     u64 lo_hi = (u32)lo1 | ((u64)(u32)hi << 32);
                     result = (u64)result + lo_hi;
                     s64 result_lo = (s32)result;
@@ -3037,7 +3037,7 @@ void ee_cpu::tick()
                             int rt = (opcode >> 16) & 0x1f;
                             int rd = (opcode >> 11) & 0x1f;
 
-                            u64 result = (u64)(u32)r[rs] * (u64)(u32)r[rt];
+                            u64 result = (u32)r[rs] * (u32)r[rt];
                             u64 lo_hi0 = (u32)lo | ((u64)(u32)hi << 32);
                             result += lo_hi0;
                             s64 result_lo = (s32)result;
@@ -3046,7 +3046,7 @@ void ee_cpu::tick()
                             hi = result_hi;
                             if(rd) r[rd] = result;
 
-                            u64 result1 = (u64)(u32)rhi[rs] * (u64)(u32)rhi[rt];
+                            u64 result1 = (u32)rhi[rs] * (u32)rhi[rt];
                             u64 lo_hi1 = (u32)lo1 | ((u64)(u32)hi1 << 32);
                             result1 += lo_hi1;
                             s64 result_lo1 = (s32)result1;
@@ -3121,14 +3121,14 @@ void ee_cpu::tick()
                             int rt = (opcode >> 16) & 0x1f;
                             int rd = (opcode >> 11) & 0x1f;
 
-                            s64 result = (u64)(u32)r[rs] * (u64)(u32)r[rt];
+                            s64 result = (u32)r[rs] * (u32)r[rt];
                             s64 result_lo = (s32)result;
                             s64 result_hi = (s32)(result >> 32);
                             lo = result_lo;
                             hi = result_hi;
                             if(rd) r[rd] = result;
 
-                            s64 result1 = (u64)(u32)rhi[rs] * (u64)(u32)rhi[rt];
+                            s64 result1 = (u32)rhi[rs] * (u32)rhi[rt];
                             s64 result_lo1 = (s32)result1;
                             s64 result_hi1 = (s32)(result1 >> 32);
                             lo1 = result_lo1;
@@ -3319,9 +3319,11 @@ void ee_cpu::tick()
                             }
                             case 0x04:
                             {
-                                auto clamp = [](u32 data) -> s16
+                                auto clamp = [](u32 data) -> u16
                                 {
-                                    return std::clamp<u32>(data, INT16_MIN, INT16_MAX);
+                                    if(data >= 0x00008000) return 0x7fff;
+                                    else if(data < 0xffff8000) return 0x8000;
+                                    else return data;
                                 };
                                 r[rd] = clamp((u32)lo) | ((u32)clamp(lo >> 32) << 16) | ((u64)clamp((u32)hi) << 32) | ((u64)clamp(hi >> 32) << 48);
                                 rhi[rd] = clamp((u32)lo1) | ((u32)clamp(lo1 >> 32) << 16) | ((u64)clamp((u32)hi1) << 32) | ((u64)clamp(hi1 >> 32) << 48);

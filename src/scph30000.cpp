@@ -3,14 +3,10 @@
 void scph30000::init()
 {
     //TODO
-    bios = (u8*)malloc(0x400000);
-    memset(bios, 0, 0x400000);
-    ee_ram = (u8*)malloc(0x2000000);
-    memset(ee_ram, 0, 0x2000000);
-    iop_ram = (u8*)malloc(0x200000);
-    memset(iop_ram, 0, 0x200000);
-    ee_sp_ram = (u8*)malloc(0x4000);
-    memset(ee_sp_ram, 0, 0x4000);
+    bios = (u8*)calloc(0x400000, 1);
+    ee_ram = (u8*)calloc(0x2000000, 1);
+    iop_ram = (u8*)calloc(0x200000, 1);
+    ee_sp_ram = (u8*)calloc(0x4000, 1);
 
     mch_drd = 0;
     mch_ricm = 0;
@@ -184,7 +180,6 @@ u64 scph30000_ee_rd(void* dev, u32 addr)
     }
     else if(addr >= 0x70000000 && addr < 0x70004000)
     {
-        printf("[EE] Scratchpad read %08x\n", addr & 0xfffffff8);
         return *(u64*)(device->ee_sp_ram + (addr & 0x3ff8));
     }
     else fprintf(device->reg_access_log, "[EE] Unknown address %08x!\n", addr);
