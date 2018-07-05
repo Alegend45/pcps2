@@ -1112,7 +1112,7 @@ void ee_cpu::tick()
             if(rt)
             {
                 u64 data = rd(addr & ~7);
-                r[rt] = r[rt] = (r[rt] & ldr_mask[shift]) | (data >> ldr_shift[shift]);;
+                r[rt] = (r[rt] & ldr_mask[shift]) | (data >> ldr_shift[shift]);;
             }
             break;
         }

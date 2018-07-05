@@ -21,8 +21,8 @@ void iop_cpu::init()
 u32 iop_cpu::translate_addr(u32 addr)
 {
     if(addr >= 0x80000000 && addr < 0xa0000000) return addr - 0x80000000;
-    else if(addr >= 0xa0000000 && addr < 0xc0000000) return addr - 0xa0000000;
-    else return addr;
+    if(addr >= 0xa0000000 && addr < 0xc0000000) return addr - 0xa0000000;
+    return addr;
 }
 
 u8 iop_cpu::rb(u32 addr)
@@ -45,20 +45,29 @@ u32 iop_cpu::rw(u32 addr)
 
 void iop_cpu::wb(u32 addr, u8 data)
 {
-    u32 phys_addr = translate_addr(addr);
-    wb_real(device, phys_addr, data);
+    if(!cop0_status.isolate_cache)
+    {
+        u32 phys_addr = translate_addr(addr);
+        wb_real(device, phys_addr, data);
+    }
 }
 
 void iop_cpu::wh(u32 addr, u16 data)
 {
-    u32 phys_addr = translate_addr(addr);
-    wh_real(device, phys_addr, data);
+    if(!cop0_status.isolate_cache)
+    {
+        u32 phys_addr = translate_addr(addr);
+        wh_real(device, phys_addr, data);
+    }
 }
 
 void iop_cpu::ww(u32 addr, u32 data)
 {
-    u32 phys_addr = translate_addr(addr);
-    ww_real(device, phys_addr, data);
+    if(!cop0_status.isolate_cache)
+    {
+        u32 phys_addr = translate_addr(addr);
+        ww_real(device, phys_addr, data);
+    }
 }
 
 void iop_cpu::tick()

@@ -10,7 +10,7 @@ struct scph10000
     u8* bios; //[0x400000]
     u8* ee_ram; //[0x2000000]
     u8* iop_ram; //[0x200000]
-    u8* ee_sp_ram; //[0x4000]
+    u8* ee_sp_ram; //[0x4000] EE scratchpad RAM
 
     u32 mch_ricm, mch_drd;
     u8 rdram_sdevid;

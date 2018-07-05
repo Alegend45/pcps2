@@ -488,7 +488,6 @@ void scph30000_iop_ww(void* dev, u32 addr, u32 data)
     scph30000* device = (scph30000*) dev;
     if(addr < 0x00200000)
     {
-        fprintf(device->reg_access_log, "[IOP] IOP RAM write %08x data %08x pc %08x\n", addr & 0x1fffff, data, device->iop->pc);
         *(u32*)(device->iop_ram + (addr & 0x1fffff)) = data;
     }
     else if(addr >= 0x1d000000 && addr < 0x1f810000)
