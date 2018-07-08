@@ -88,7 +88,7 @@ int main(int ac, char** av)
         }
         fclose(fp);
 
-        for(int i = 0; i < 500000; i+=8)
+        for(int i = 0; i < 10000000; i+=8)
         {
             int cycles_to_run = 8;
             int cycles = cycles_to_run;

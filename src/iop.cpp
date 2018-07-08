@@ -15,6 +15,8 @@ void iop_cpu::init()
     cop0_count = 0;
     cop0_status.whole = 0;
     cop0_status.boot_except_vectors_rom = 1;
+
+    iop_debug_log = fopen("iop_debug_console.txt","w+");
 }
 
 //TODO: This MMU emulation is COMPLETELY inaccurate, but it's good enough for now :/
@@ -850,6 +852,21 @@ void iop_cpu::tick()
         {
             branch_on = false;
             pc = newpc;
+            if (pc == 0x00012c48 || pc == 0x0001420c || pc == 0x0001430c)
+            {
+                u32 pointer = r[5];
+                u32 length = r[6];
+
+                if(length >= 2048) length = 2048;
+
+                while(length)
+                {
+                    u8 chr = rb(pointer & 0x1fffff);
+                    fputc(chr, iop_debug_log);
+                    pointer++;
+                    length--;
+                }
+            }
         }
         else delay_slot--;
     }

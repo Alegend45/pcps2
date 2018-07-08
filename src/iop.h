@@ -44,6 +44,7 @@ struct iop_cpu
     bool branch_on;
 
     void* device;
+    FILE* iop_debug_log;
 
     std::function<u8(void*,u32)> rb_real;
     std::function<u16(void*,u32)> rh_real;
