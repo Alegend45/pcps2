@@ -64,6 +64,8 @@ struct ee_cpu
         u32 whole;
     } cop0_config;
 
+    u32 cop0_prid;
+
     union
     {
         float f;
@@ -76,7 +78,17 @@ struct ee_cpu
     int delay_slot;
     bool branch_on;
 
+    struct
+    {
+        bool active;
+        u32 device;
+        u32 addr;
+    } deci2handlers[128];
+    int deci2size;
+
+    int cycle;
     void* device;
+    FILE* ee_debug_log;
 
     std::function<u8(void*,u32)> rb_real;
     std::function<u16(void*,u32)> rh_real;
@@ -90,6 +102,7 @@ struct ee_cpu
     std::function<void(void*,u32,u128)> wq_real;
 
     void init();
+    void exit();
     u32 translate_addr(u32 addr);
     u8 rb(u32 addr);
     u16 rh(u32 addr);

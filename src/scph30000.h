@@ -3,6 +3,7 @@
 #include "common.h"
 #include "ee.h"
 #include "iop_dma.h"
+#include "iop_intc.h"
 #include "iop.h"
 
 struct scph30000
@@ -19,9 +20,9 @@ struct scph30000
     iop_cpu* iop;
 
     iop_dma_t iop_dma;
+    iop_intc_t iop_intc;
 
     FILE* reg_access_log;
-    FILE* ee_debug_log;
 
     void init();
     void exit();

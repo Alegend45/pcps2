@@ -2,11 +2,22 @@
 
 void iop_dma_t::init()
 {
-    for(int i = 0; i < 16; i++)
+    for(int i = 0; i < 13; i++)
     {
         dpcr.enable[i] = false;
         dpcr.priorities[i] = 7;
+        channels[i].addr = 0;
+        channels[i].word_count = 0;
+        channels[i].block_size = 0;
+        channels[i].control.whole = 0;
+        channels[i].tag_addr = 0;
+        channels[i].tag_end = true;
+        channels[i].tag_addr_valid = false;
     }
+
+    channels[2].tag_addr_valid = true;
+    channels[4].tag_addr_valid = true;
+    channels[9].tag_addr_valid = true;
 }
 
 void iop_dma_t::tick()
@@ -16,10 +27,10 @@ void iop_dma_t::tick()
 u32 iop_dma_t::dma_rw(u32 addr)
 {
     u32 dma_addr = addr & 0xfff;
-    if(dma_addr <= 0x0f0 || (dma_addr >= 0x500 && dma_addr < 0x570))
+    if(dma_addr <= 0x0f0 || (dma_addr >= 0x500 && dma_addr < 0x560))
     {
         u32 channel = (dma_addr >> 4) & 0x7;
-        if(dma_addr >= 0x500 && dma_addr < 0x570) channel += 8;
+        if(dma_addr >= 0x500 && dma_addr < 0x560) channel += 7;
         switch(dma_addr & 0xc)
         {
             case 0x0:
@@ -45,7 +56,7 @@ u32 iop_dma_t::dma_rw(u32 addr)
         case 0x0f0:
         {
             u32 result = 0;
-            for(u32 i = 0; i < 8; i++)
+            for(u32 i = 0; i < 7; i++)
             {
                 result |= dpcr.priorities[i] << (i << 2);
                 result |= dpcr.enable[i] << ((i << 2) + 3);
@@ -69,9 +80,9 @@ u32 iop_dma_t::dma_rw(u32 addr)
         case 0x570:
         {
             u32 result = 0;
-            for(u32 i = 8; i < 16; i++)
+            for(u32 i = 8; i < 13; i++)
             {
-                int bit = i - 8;
+                int bit = i - 7;
                 result |= dpcr.priorities[i] << (bit << 2);
                 result |= dpcr.enable[i] << ((bit << 2) + 3);
             }
@@ -98,10 +109,10 @@ u32 iop_dma_t::dma_rw(u32 addr)
 void iop_dma_t::dma_ww(u32 addr, u32 data)
 {
     u32 dma_addr = addr & 0xfff;
-    if(dma_addr <= 0x0f0 || (dma_addr >= 0x500 && dma_addr < 0x570))
+    if(dma_addr <= 0x0f0 || (dma_addr >= 0x500 && dma_addr < 0x560))
     {
         u32 channel = (dma_addr >> 4) & 0x7;
-        if(dma_addr >= 0x500 && dma_addr < 0x570) channel += 8;
+        if(dma_addr >= 0x500 && dma_addr < 0x560) channel += 7;
         switch(dma_addr & 0xc)
         {
             case 0x0:
@@ -122,7 +133,7 @@ void iop_dma_t::dma_ww(u32 addr, u32 data)
             }
             case 0xc:
             {
-                channels[channel].tag_addr = data;
+                if(channels[channel].tag_addr_valid) channels[channel].tag_addr = data;
                 break;
             }
         }
@@ -131,7 +142,7 @@ void iop_dma_t::dma_ww(u32 addr, u32 data)
     {
         case 0x0f0:
         {
-            for(u32 i = 0; i < 8; i++)
+            for(u32 i = 0; i < 7; i++)
             {
                 bool old_enable = dpcr.enable[i];
                 dpcr.priorities[i] = (data >> (i << 2)) & 7;
@@ -149,9 +160,9 @@ void iop_dma_t::dma_ww(u32 addr, u32 data)
         }
         case 0x570:
         {
-            for(u32 i = 8; i < 16; i++)
+            for(u32 i = 8; i < 13; i++)
             {
-                int bit = i - 8;
+                int bit = i - 7;
                 bool old_enable = dpcr.enable[i];
                 dpcr.priorities[i] = (data >> (bit << 2)) & 7;
                 dpcr.enable[i] = (data & (1 << ((bit << 2) + 3))) ? true : false;

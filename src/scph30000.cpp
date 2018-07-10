@@ -17,8 +17,10 @@ void scph30000::init()
     iop_dma.ww = scph30000_iop_ww;
     iop_dma.init();
 
+    iop_intc.device = this;
+    iop_intc.init();
+
     reg_access_log = fopen("reglog.txt","w+");
-    ee_debug_log = fopen("ee_debug_console.txt","w+");
 }
 
 void scph30000::exit()
@@ -27,7 +29,6 @@ void scph30000::exit()
     free(ee_ram);
     free(iop_ram);
     free(ee_sp_ram);
-    if(ee_debug_log) fclose(ee_debug_log);
     if(reg_access_log) fclose(reg_access_log);
 }
 
@@ -239,7 +240,7 @@ void scph30000_ee_wb(void* dev, u32 addr, u8 data)
     {
         if(addr == 0x1000f180)
         {
-            fputc(data, device->ee_debug_log);
+            fputc(data & 0x7f, device->ee->ee_debug_log);
         }
         else fprintf(device->reg_access_log, "[EE] Unknown register write %08x data %02x pc %08x\n", addr, data, device->ee->pc);
     }
@@ -322,7 +323,7 @@ void scph30000_ee_ww(void* dev, u32 addr, u32 data)
     }
     else if(addr >= 0x1c000000 && addr < 0x1c200000)
     {
-        fprintf(device->reg_access_log, "[EE] IOP RAM write %08x data %08x pc %08x\n", addr & 0x1fffff, data, device->ee->pc);
+        //fprintf(device->reg_access_log, "[EE] IOP RAM write %08x data %08x pc %08x\n", addr & 0x1fffff, data, device->ee->pc);
         *(u32*)(device->iop_ram + (addr & 0x1fffff)) = data;
     }
     else if(addr >= 0x70000000 && addr < 0x70004000)
@@ -435,7 +436,12 @@ u32 scph30000_iop_rw(void* dev, u32 addr)
     }
     else if(addr >= 0x1d000000 && addr < 0x1f810000)
     {
-        if(addr >= 0x1f801080 && addr < 0x1f801100)
+        if(addr >= 0x1f801070 && addr < 0x1f80107c)
+        {
+            fprintf(device->reg_access_log, "[IOP] INTC read %08x pc %08x\n", addr, device->iop->pc);
+            return device->iop_intc.rw(addr);
+        }
+        else if(addr >= 0x1f801080 && addr < 0x1f801100)
         {
             fprintf(device->reg_access_log, "[IOP] DMA read %08x pc %08x\n", addr, device->iop->pc);
             return device->iop_dma.dma_rw(addr);
@@ -451,7 +457,7 @@ u32 scph30000_iop_rw(void* dev, u32 addr)
     {
         return *(u32*)(device->bios + (addr & 0x3fffff));
     }
-    else fprintf(device->reg_access_log, "[IOP] Unknown address %08x!\n", addr);
+    else fprintf(device->reg_access_log, "[IOP] Unknown address %08x pc %08x!\n", addr, device->iop->pc);
     return 0;
 }
 
@@ -492,7 +498,12 @@ void scph30000_iop_ww(void* dev, u32 addr, u32 data)
     }
     else if(addr >= 0x1d000000 && addr < 0x1f810000)
     {
-        if(addr >= 0x1f801080 && addr < 0x1f801100)
+        if(addr >= 0x1f801070 && addr < 0x1f80107c)
+        {
+            fprintf(device->reg_access_log, "[IOP] INTC write %08x data %08x pc %08x\n", addr, data, device->iop->pc);
+            device->iop_intc.ww(addr, data);
+        }
+        else if(addr >= 0x1f801080 && addr < 0x1f801100)
         {
             fprintf(device->reg_access_log, "[IOP] DMA write %08x data %08x pc %08x\n", addr, data, device->iop->pc);
             device->iop_dma.dma_ww(addr, data);

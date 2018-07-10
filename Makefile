@@ -6,6 +6,7 @@ OBJ = attotime.o \
 common.o \
 ee.o \
 iop_dma.o \
+iop_intc.o \
 iop.o \
 main.o \
 scph10000.o \

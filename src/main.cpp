@@ -48,6 +48,8 @@ int main(int ac, char** av)
         ee.init();
         iop.init();
 
+        ee.cop0_prid = 0x00002e14;
+
         dev.ee = &ee;
         dev.iop = &iop;
 
@@ -88,12 +90,16 @@ int main(int ac, char** av)
         }
         fclose(fp);
 
-        for(int i = 0; i < 10000000; i+=8)
+        for(int i = 0; i < (10000000 + 661439); i+=8)
         {
             int cycles_to_run = 8;
             int cycles = cycles_to_run;
+            ee.cycle = i;
+            iop.cycle = i;
             while(cycles_to_run > 0)
             {
+                ee.cycle++;
+                iop.cycle++;
                 cycles_to_run--;
                 ee.tick();
             }
@@ -108,6 +114,8 @@ int main(int ac, char** av)
             }
         }
 
+        ee.exit();
+        iop.exit();
         dev.exit();
     }
 
@@ -121,6 +129,8 @@ int main(int ac, char** av)
 
         ee.init();
         iop.init();
+
+        ee.cop0_prid = 0x00002e14;
 
         dev.ee = &ee;
         dev.iop = &iop;
@@ -172,6 +182,8 @@ int main(int ac, char** av)
             }
         }
 
+        ee.exit();
+        iop.exit();
         dev.exit();
     }
 
@@ -226,7 +238,7 @@ int main(int ac, char** av)
         }
         fclose(fp);
 
-        for(int i = 0; i < 100000; i++)
+        /*for(int i = 0; i < 100000; i++)
         {
             ee.tick();
             current_time += ee_atto;
@@ -235,8 +247,34 @@ int main(int ac, char** av)
                 iop.tick();
                 current_time -= iop_atto;
             }
+        }*/
+
+        for(int i = 0; i < 10000000; i+=8)
+        {
+            int cycles_to_run = 8;
+            int cycles = cycles_to_run;
+            ee.cycle = i;
+            iop.cycle = i;
+            while(cycles_to_run > 0)
+            {
+                ee.cycle++;
+                iop.cycle++;
+                cycles_to_run--;
+                ee.tick();
+            }
+            ee.cop0_count += cycles;
+            current_time += ee_atto * cycles;
+            cycles >>= 3;
+            for(int j = 0; j < cycles; j++)
+            {
+                iop.tick();
+                iop.cop0_count += cycles;
+                current_time -= iop_atto;
+            }
         }
 
+        ee.exit();
+        iop.exit();
         dev.exit();
     }
 

@@ -17,6 +17,12 @@ void iop_cpu::init()
     cop0_status.boot_except_vectors_rom = 1;
 
     iop_debug_log = fopen("iop_debug_console.txt","w+");
+    cycle = 0;
+}
+
+void iop_cpu::exit()
+{
+    if(iop_debug_log) fclose(iop_debug_log);
 }
 
 //TODO: This MMU emulation is COMPLETELY inaccurate, but it's good enough for now :/
@@ -75,13 +81,36 @@ void iop_cpu::ww(u32 addr, u32 data)
 void iop_cpu::tick()
 {
     u32 opcode = rw(pc);
+#define printf(...) do { if(cycle >= (9000000 + 661439)) printf(__VA_ARGS__); } while (0)
     printf("[IOP] Opcode: %08x\n[IOP] PC: %08x\n", opcode, pc);
     for(int i = 0; i < 32; i++)
     {
         printf("[IOP] R%d: %08x\n", i, r[i]);
     }
+#undef printf
+#define printf(...)
 
-#define printf(fmt, ...)
+    u32 pc_check = pc & 0x1fffffff;
+    if(pc_check == 0x00012c48 || pc_check == 0x0001420c || pc_check == 0x0001430c)
+    {
+        //IOP puts
+        u32 pointer = r[5];
+        u32 length = r[6];
+
+        if(length > 2048) length = 2048;
+
+        while(length)
+        {
+            char chr = rb(pointer & 0x1fffff) & 0x7f;
+            fputc(chr, iop_debug_log);
+            pointer++;
+            length--;
+        }
+    }
+    /*if(pc_check == 0x000086d0 || pc_check == 0x000090e0 || pc_check == 0x00008ee0)
+    {
+
+    }*/
 
     switch(opcode >> 26)
     {
@@ -165,6 +194,11 @@ void iop_cpu::tick()
                     newpc = r[rs];
                     delay_slot = 1;
                     if(rd) r[rd] = return_addr;
+                    break;
+                }
+                case 0x0c:
+                {
+                    printf("[IOP] SYSCALL\n");
                     break;
                 }
                 case 0x10:
@@ -610,6 +644,16 @@ void iop_cpu::tick()
                             if(rt) r[rt] = cop0_status.whole;
                             break;
                         }
+                        case 0x0d:
+                        {
+                            if(rt) r[rt] = cop0_cause.whole;
+                            break;
+                        }
+                        case 0x0e:
+                        {
+                            if(rt) r[rt] = cop0_epc;
+                            break;
+                        }
                         case 0x0f:
                         {
                             if(rt) r[rt] = 0x0000001f; //TODO: hpsx64 value. VERIFY!
@@ -635,31 +679,9 @@ void iop_cpu::tick()
                             cop0_status.whole = r[rt];
                             break;
                         }
-                    }
-                    break;
-                }
-                case 0x08:
-                {
-                    switch((opcode >> 16) & 0x1f)
-                    {
-                        case 0x00:
+                        case 0x0d:
                         {
-                            printf("[IOP] BC0F\n");
-                            break;
-                        }
-                        case 0x01:
-                        {
-                            printf("[IOP] BC0T\n");
-                            break;
-                        }
-                        case 0x02:
-                        {
-                            printf("[IOP] BC0FL\n");
-                            break;
-                        }
-                        case 0x03:
-                        {
-                            printf("[IOP] BC0TL\n");
+                            cop0_cause.whole = r[rt] & (3 << 8);
                             break;
                         }
                     }
@@ -669,24 +691,14 @@ void iop_cpu::tick()
                 {
                     switch(opcode & 0x3f)
                     {
-                        case 0x01:
-                        {
-                            printf("[IOP] TLBR\n");
-                            break;
-                        }
-                        case 0x02:
-                        {
-                            printf("[IOP] TLBWI\n");
-                            break;
-                        }
-                        case 0x06:
-                        {
-                            printf("[IOP] TLBWR\n");
-                            break;
-                        }
                         case 0x10:
                         {
                             printf("[IOP] RFE\n");
+                            cop0_status.current_in_user_mode = cop0_status.previous_in_user_mode;
+                            cop0_status.current_int_enable = cop0_status.previous_int_enable;
+
+                            cop0_status.previous_in_user_mode = cop0_status.old_in_user_mode;
+                            cop0_status.previous_int_enable = cop0_status.old_int_enable;
                             break;
                         }
                     }
@@ -852,24 +864,46 @@ void iop_cpu::tick()
         {
             branch_on = false;
             pc = newpc;
-            if (pc == 0x00012c48 || pc == 0x0001420c || pc == 0x0001430c)
-            {
-                u32 pointer = r[5];
-                u32 length = r[6];
-
-                if(length >= 2048) length = 2048;
-
-                while(length)
-                {
-                    u8 chr = rb(pointer & 0x1fffff);
-                    fputc(chr, iop_debug_log);
-                    pointer++;
-                    length--;
-                }
-            }
         }
         else delay_slot--;
     }
+}
+
+void iop_cpu::generate_exception(int exception)
+{
+    cop0_epc = pc;
+    cop0_cause.in_branch_delay = 0;
+    cop0_cause.exception_code = exception;
+
+    if(branch_on)
+    {
+        cop0_epc -= 4;
+        cop0_cause.in_branch_delay = 1;
+    }
+
+    cop0_status.old_int_enable = cop0_status.previous_int_enable;
+    cop0_status.old_in_user_mode = cop0_status.previous_in_user_mode;
+    
+    cop0_status.previous_int_enable = cop0_status.current_int_enable;
+    cop0_status.previous_in_user_mode = cop0_status.current_in_user_mode;
+
+    cop0_status.current_int_enable = cop0_status.current_in_user_mode = 0;
+
+    pc = cop0_status.boot_except_vectors_rom ? 0xbfc00000 : 0x80000000;
+
+    // most exceptions go to offset 0x180, except for TLB stuff and syscall (if BEV is unset)
+    if(!cop0_status.boot_except_vectors_rom) pc += 0x80;
+    else pc += 0x180;
+}
+
+void iop_cpu::irq_modify(int num, bool level)
+{
+    if(level) cop0_cause.interrupt_pending |= 0x100 << num;
+    else cop0_cause.interrupt_pending &= ~(0x100 << num);
+
+    bool irq = cop0_cause.interrupt_pending & cop0_status.interrupt_mask;
+    irq = irq && cop0_status.current_int_enable;
+    if(irq) generate_exception(exception_interrupt);
 }
 
 #undef printf

@@ -2,6 +2,20 @@
 
 #include "common.h"
 
+enum iop_exceptions
+{
+    exception_interrupt = 0x01,
+    exception_addrload = 0x04,
+    exception_addrstore = 0x05,
+    exception_businst = 0x06,
+    exception_busdata = 0x07,
+    exception_syscall = 0x08,
+    exception_break = 0x09,
+    exception_invalidop = 0x0a,
+    exception_badcop = 0x0b,
+    exception_overflow = 0x0c
+};
+
 struct iop_cpu
 {
     u32 r[32];
@@ -38,11 +52,30 @@ struct iop_cpu
         u32 whole;
     } cop0_status;
 
+    union
+    {
+        struct
+        {
+            u32 reserved1 : 2;
+            u32 exception_code : 5;
+            u32 reserved2 : 1;
+            u32 interrupt_pending : 8;
+            u32 reserved3 : 12;
+            u32 cop_num : 2;
+            u32 reserved4 : 1;
+            u32 in_branch_delay : 1;
+        };
+        u32 whole;
+    } cop0_cause;
+
+    u32 cop0_epc;
+
     u32 pc, newpc;
     bool inc_pc;
     int delay_slot;
     bool branch_on;
 
+    int cycle;
     void* device;
     FILE* iop_debug_log;
 
@@ -54,6 +87,7 @@ struct iop_cpu
     std::function<void(void*,u32,u32)> ww_real;
 
     void init();
+    void exit();
     u32 translate_addr(u32 addr);
     u8 rb(u32 addr);
     u16 rh(u32 addr);
@@ -62,4 +96,6 @@ struct iop_cpu
     void wh(u32 addr, u16 data);
     void ww(u32 addr, u32 data);
     void tick();
+    void generate_exception(int exception);
+    void irq_modify(int num, bool level);
 };

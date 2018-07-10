@@ -22,6 +22,8 @@ src/eminline.h
 src/emucore.h
 src/iop_dma.cpp
 src/iop_dma.h
+src/iop_intc.cpp
+src/iop_intc.h
 src/iop.cpp
 src/iop.h
 src/main.cpp

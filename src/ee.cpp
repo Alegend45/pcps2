@@ -14,6 +14,21 @@ void ee_cpu::init()
     branch_on = false;
 
     cop0_count = 0;
+    cop0_prid = 0x00002e20; //TODO: PCSX2 value. VERIFY!
+    
+    cycle = 0;
+    ee_debug_log = fopen("ee_debug_console.txt","w+");
+
+    deci2size = 0;
+    for(int i = 0; i < 128; i++)
+    {
+        deci2handlers[i].active = false;
+    }
+}
+
+void ee_cpu::exit()
+{
+    if(ee_debug_log) fclose(ee_debug_log);
 }
 
 //TODO: This MMU emulation is COMPLETELY inaccurate, but it's good enough for now :/
@@ -87,13 +102,14 @@ void ee_cpu::wq(u32 addr, u128 data)
 void ee_cpu::tick()
 {
     u32 opcode = rw(pc);
+#define printf(...) do { if(cycle >= (9000000 + 661439)) printf(__VA_ARGS__); } while (0)
     printf("[EE] Opcode: %08x\n[EE] PC: %08x\n", opcode, pc);
     for(int i = 0; i < 32; i++)
     {
         printf("[EE] R%d: %016x%016x\n", i, rhi[i], r[i]);
     }
-
-#define printf(fmt, ...)
+#undef printf
+#define printf(...)
 
     switch(opcode >> 26)
     {
@@ -203,6 +219,75 @@ void ee_cpu::tick()
                     if(r[rt])
                     {
                         if(rd) r[rd] = r[rs];
+                    }
+                    break;
+                }
+                case 0x0c:
+                {
+                    //HLE some syscalls for now
+                    printf("[EE] SYSCALL\n");
+                    u8 syscall = rb(pc - 4);
+
+                    if(syscall == 0x7c)
+                    {
+                        printf("[EE] Deci2Call\n");
+                        u32 func = (u32)r[4];
+                        u32 param = (u32)r[5];
+                        switch(func)
+                        {
+                            case 0x01:
+                            {
+                                printf("[EE] Deci2Open\n");
+                                u8 id = deci2size & 0x7f;
+                                deci2size++;
+                                deci2handlers[id].active = true;
+                                deci2handlers[id].device = rw(param);
+                                deci2handlers[id].addr = rw(param + 4);
+                                r[2] = id;
+                                break;
+                            }
+                            case 0x03:
+                            {
+                                printf("[EE] Deci2Send\n");
+                                u8 id = rw(param) & 0x7f;
+                                if(deci2handlers[id].active)
+                                {
+                                    u32 addr = rw(deci2handlers[id].addr + 0x10);
+                                    int len = rw(addr) - 0x0c;
+                                    u32 str = addr + 0x0c;
+                                    while(len > 0)
+                                    {
+                                        char c = rw(addr & 0x1ffffff) & 0x7f;
+                                        fputc(c, ee_debug_log);
+                                        addr++;
+                                        len--;
+                                    }
+                                }
+                                r[2] = 1;
+                                break;
+                            }
+                            case 0x04:
+                            {
+                                printf("[EE] Deci2Poll\n");
+                                u8 id = rw(param) & 0x7f;
+                                if(deci2handlers[id].active) ww(deci2handlers[id].addr + 0x0c, 0);
+                                r[2] = 1;
+                                break;
+                            }
+                            case 0x10:
+                            {
+                                printf("[EE] kputs\n");
+                                param = rw(param & 0x1ffffff);
+                                char c = '\0';
+                                do
+                                {
+                                    c = rb(param & 0x1ffffff) & 0x7f;
+                                    fputc(c, ee_debug_log);
+                                    param++;
+                                } while(c);
+                                break;
+                            }
+                        }
                     }
                     break;
                 }
@@ -888,7 +973,7 @@ void ee_cpu::tick()
                         }
                         case 0x0f:
                         {
-                            if(rt) r[rt] = 0x00002e20; //TODO: PCSX2 value. VERIFY!
+                            if(rt) r[rt] = cop0_prid;
                             break;
                         }
                         case 0x10:

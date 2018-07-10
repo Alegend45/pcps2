@@ -29,14 +29,15 @@ struct iop_dma_t
             u32 whole;
         } control;
         u32 tag_addr;
+        bool tag_addr_valid;
 
         bool tag_end;
-    } channels[16];
+    } channels[13];
 
     struct
     {
-        u8 priorities[16];
-        bool enable[16];
+        u8 priorities[13];
+        bool enable[13];
     } dpcr;
 
     struct
