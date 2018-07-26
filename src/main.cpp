@@ -1,7 +1,3 @@
-#ifdef __APPLE__
-#error "Apple is vehemently anti-dev, and refuses to support modern OpenGL, OpenCL, or any Vulkan natively. Therefore, this software does not support MacOS or Apple."
-#endif
-
 #include "common.h"
 #include "attotime.h"
 #include "ee.h"
@@ -17,10 +13,6 @@ enum class ps2_model
 
 int main(int ac, char** av)
 {
-#ifdef __APPLE__
-    printf("Really? You were smart enough to disable the first check, but still stupid enough to use an Apple operating system? Fucking shame on you, I'm out.\n");
-    return -1;
-#endif
     if(ac < 2)
     {
         printf("usage: %s [model]\n", av[0]);
